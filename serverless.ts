@@ -1,6 +1,6 @@
-import type { AWS } from '@serverless/typescript';
+import type { AWS } from '@serverless/typescript'
 
-import hello from '@functions/hello';
+import hello from '@functions/hello'
 import syncBigQuery from '@functions/syncBigQuery'
 
 const serverlessConfiguration: AWS = {
@@ -9,8 +9,8 @@ const serverlessConfiguration: AWS = {
   custom: {
     webpack: {
       webpackConfig: './webpack.config.js',
-      includeModules: true,
-    },
+      includeModules: true
+    }
   },
   plugins: ['serverless-webpack'],
   provider: {
@@ -21,12 +21,12 @@ const serverlessConfiguration: AWS = {
     //   shouldStartNameWithService: true,
     // },
     environment: {
-      AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
+      AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
     },
-    lambdaHashingVersion: '20201221',
+    lambdaHashingVersion: '20201221'
   },
   // import the function via paths
-  functions: { hello, syncBigQuery },
-};
+  functions: { hello, syncBigQuery }
+}
 
-module.exports = serverlessConfiguration;
+module.exports = serverlessConfiguration

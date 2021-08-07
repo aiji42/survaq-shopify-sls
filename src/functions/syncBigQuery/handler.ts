@@ -1,4 +1,4 @@
-import {middyfy} from "@libs/lambda";
+import { middyfy } from '@libs/lambda'
 
 const orders = async () => {
   console.log('test')
