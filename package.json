@@ -5,7 +5,8 @@
   "main": "serverless.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "format": "prettier --write 'src/**/*.ts' './*.ts'"
+    "format": "prettier --write 'src/**/*.ts' './*.ts'",
+    "lint": "eslint 'src/**/*.ts' './*.ts'"
   },
   "engines": {
     "node": ">=14.15.0"
@@ -20,6 +21,10 @@
     "@serverless/typescript": "^2.23.0",
     "@types/aws-lambda": "^8.10.71",
     "@types/node": "^14.14.25",
+    "@typescript-eslint/eslint-plugin": "^4.29.0",
+    "@typescript-eslint/parser": "^4.29.0",
+    "eslint": "^7.32.0",
+    "eslint-config-prettier": "^8.3.0",
     "json-schema-to-ts": "^1.5.0",
     "prettier": "^2.3.2",
     "serverless": "^2.23.0",
