@@ -171,7 +171,9 @@ const makeRemoveDuplicateRecordQuery = (table) => {
 }
 
 const orderListQuery = (cursor: null | string) => `{
-  orders(first: 10, query: "updated_at:>2021-08-08T00:00:00" after: ${cursor ? `"${cursor}"` : 'null'}) {
+  orders(first: 10, query: "updated_at:>2021-08-08T00:00:00" after: ${
+    cursor ? `"${cursor}"` : 'null'
+  }) {
     edges {
       node {
         id
@@ -240,7 +242,13 @@ export const ordersAndLineItems = async (): Promise<void> => {
 
     orders = data.orders.edges.reduce((res, { node, cursor: c }) => {
       cursor = c
-      lineItems = [...lineItems, ...node.lineItems.edges.map(({ node }) => node)]
+      lineItems = [
+        ...lineItems,
+        ...node.lineItems.edges.map(({ node: item }) => ({
+          ...item,
+          orderId: node.id
+        }))
+      ]
       return [...res, node]
     }, orders)
   }
@@ -297,12 +305,11 @@ const makeLineItemsQuery = (data) => {
     INSERT INTO shopify.line_items (
       id,
       name,
+      order_id,
       variant_id,
       product_id,
       quantity,
-      original_total_price,
-      created_at,
-      updated_at
+      original_total_price
     )
     VALUES ?
     `,
@@ -310,12 +317,11 @@ const makeLineItemsQuery = (data) => {
       data.map((record) => [
         record.id,
         record.name,
+        record.orderId,
         record.variant.id,
         record.product.id,
         record.quantity,
-        Number(record.originalTotalSet.shopMoney.amount),
-        record.createdAt,
-        record.updatedAt
+        Number(record.originalTotalSet.shopMoney.amount)
       ])
     ]
   )
