@@ -1,6 +1,6 @@
 import * as Shopify from 'shopify-api-node'
 import { BigQuery } from '@google-cloud/bigquery'
-import sql from 'sqlstring'
+import * as sql from 'sqlstring'
 
 const credentials = JSON.parse(
   process.env.BIGQUERY_CREDENTIALS ??
