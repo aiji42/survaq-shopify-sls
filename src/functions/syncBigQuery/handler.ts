@@ -169,3 +169,154 @@ const makeRemoveDuplicateRecordQuery = (table) => {
     `
   )
 }
+
+const orderListQuery = (cursor: null | string) => `{
+  orders(first: 10, query: "updated_at:>2021-08-08T00:00:00" after: ${cursor ? `"${cursor}"` : 'null'}) {
+    edges {
+      node {
+        id
+        name
+        displayFinancialStatus
+        displayFulfillmentStatus
+        closed
+        totalPriceSet {
+          shopMoney {
+            amount
+          }
+        }
+        subtotalPriceSet {
+          shopMoney {
+            amount
+          }
+        }
+        totalTaxSet {
+          shopMoney {
+            amount
+          }
+        }
+        taxesIncluded
+        subtotalLineItemsQuantity
+        closedAt
+        cancelledAt
+        createdAt
+        updatedAt
+        lineItems(first: 10) {
+          edges {
+            node {
+              id
+              name
+              quantity
+              originalTotalSet {
+                shopMoney {
+                  amount
+                }
+              }
+              variant {
+                id
+              }
+              product {
+                id
+              }
+            }
+          }
+        }
+      }
+      cursor
+    }
+    pageInfo {
+      hasNextPage
+    }
+  }
+}`
+
+export const ordersAndLineItems = async (): Promise<void> => {
+  let hasNext = true
+  let cursor: null | string = null
+  let orders = []
+  let lineItems = []
+  while (hasNext) {
+    const data = await shopify.graphql(orderListQuery(cursor))
+    hasNext = data.orders.pageInfo.hasNextPage
+
+    orders = data.orders.edges.reduce((res, { node, cursor: c }) => {
+      cursor = c
+      lineItems = [...lineItems, ...node.lineItems.edges.map(({ node }) => node)]
+      return [...res, node]
+    }, orders)
+  }
+
+  await client.query({ query: makeOrdersQuery(orders) })
+  await client.query({ query: makeLineItemsQuery(lineItems) })
+}
+
+const makeOrdersQuery = (data) => {
+  return sql.format(
+    `
+    INSERT INTO shopify.orders (
+      id,
+      name,
+      display_financial_status,
+      display_fulfillment_status,
+      closed,
+      total_price,
+      subtotal_price,
+      total_tax,
+      taxes_included,
+      subtotal_line_item_quantity,
+      closed_at,
+      cancelled_at,
+      created_at,
+      updated_at
+    )
+    VALUES ?
+    `,
+    [
+      data.map((record) => [
+        record.id,
+        record.name,
+        record.displayFinancialStatus,
+        record.displayFulfillmentStatus,
+        record.closed,
+        Number(record.totalPriceSet.shopMoney.amount),
+        Number(record.subtotalPriceSet.shopMoney.amount),
+        Number(record.totalTaxSet.shopMoney.amount),
+        record.taxesIncluded,
+        record.subtotalLineItemsQuantity,
+        record.closedAt,
+        record.cancelledAt,
+        record.createdAt,
+        record.updatedAt
+      ])
+    ]
+  )
+}
+
+const makeLineItemsQuery = (data) => {
+  return sql.format(
+    `
+    INSERT INTO shopify.line_items (
+      id,
+      name,
+      variant_id,
+      product_id,
+      quantity,
+      original_total_price,
+      created_at,
+      updated_at
+    )
+    VALUES ?
+    `,
+    [
+      data.map((record) => [
+        record.id,
+        record.name,
+        record.variant.id,
+        record.product.id,
+        record.quantity,
+        Number(record.originalTotalSet.shopMoney.amount),
+        record.createdAt,
+        record.updatedAt
+      ])
+    ]
+  )
+}

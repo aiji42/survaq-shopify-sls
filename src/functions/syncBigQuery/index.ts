@@ -35,3 +35,17 @@ export const syncVariantsTable: AWS['functions'][string] = {
     ...environment
   }
 }
+
+export const syncOrdersAndLineItemsTable: AWS['functions'][string] = {
+  handler: `${handlerPath(__dirname)}/handler.ordersAndLineItems`,
+  events: [
+    {
+      schedule: {
+        rate: '2 hours'
+      }
+    }
+  ],
+  environment: {
+    ...environment
+  }
+}
