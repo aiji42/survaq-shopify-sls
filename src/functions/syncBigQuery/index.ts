@@ -7,8 +7,8 @@ const environment = {
   SHOPIFY_API_SECRET_KEY: '${env:SHOPIFY_API_SECRET_KEY}'
 }
 
-const func: AWS['functions'][string] = {
-  handler: `${handlerPath(__dirname)}/handler.main`,
+export const syncProductsTable: AWS['functions'][string] = {
+  handler: `${handlerPath(__dirname)}/handler.products`,
   events: [
     {
       schedule: {
@@ -21,4 +21,16 @@ const func: AWS['functions'][string] = {
   }
 }
 
-export default func
+export const syncVariantsTable: AWS['functions'][string] = {
+  handler: `${handlerPath(__dirname)}/handler.variants`,
+  events: [
+    {
+      schedule: {
+        rate: '2 hours'
+      }
+    }
+  ],
+  environment: {
+    ...environment
+  }
+}

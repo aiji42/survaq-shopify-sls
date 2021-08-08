@@ -1,7 +1,7 @@
 import type { AWS } from '@serverless/typescript'
 
 import hello from '@functions/hello'
-import syncBigQuery from '@functions/syncBigQuery'
+import { syncProductsTable, syncVariantsTable } from '@functions/syncBigQuery'
 
 const serverlessConfiguration: AWS = {
   service: 'survaq-shopify-sls',
@@ -26,7 +26,7 @@ const serverlessConfiguration: AWS = {
     lambdaHashingVersion: '20201221'
   },
   // import the function via paths
-  functions: { hello, syncBigQuery }
+  functions: { hello, syncProductsTable, syncVariantsTable }
 }
 
 module.exports = serverlessConfiguration
