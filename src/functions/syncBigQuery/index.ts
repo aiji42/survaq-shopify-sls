@@ -17,6 +17,7 @@ export const syncProductsTable: AWS['functions'][string] = {
       }
     }
   ],
+  timeout: 180,
   environment: {
     ...environment
   }
