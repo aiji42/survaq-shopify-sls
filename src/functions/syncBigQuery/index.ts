@@ -13,11 +13,11 @@ export const syncProductsTable: AWS['functions'][string] = {
   events: [
     {
       schedule: {
-        rate: '2 hours'
+        rate: 'rate(2 hours)'
       }
     }
   ],
-  timeout: 180,
+  timeout: 60,
   environment: {
     ...environment
   }
@@ -28,10 +28,11 @@ export const syncVariantsTable: AWS['functions'][string] = {
   events: [
     {
       schedule: {
-        rate: '2 hours'
+        rate: 'rate(2 hours)'
       }
     }
   ],
+  timeout: 60,
   environment: {
     ...environment
   }
@@ -42,10 +43,11 @@ export const syncOrdersAndLineItemsTable: AWS['functions'][string] = {
   events: [
     {
       schedule: {
-        rate: '2 hours'
+        rate: 'rate(2 hours)'
       }
     }
   ],
+  timeout: 180,
   environment: {
     ...environment
   }
