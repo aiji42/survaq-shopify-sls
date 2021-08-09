@@ -1,0 +1,27 @@
+name: serverless-deploy
+on:
+  push:
+    branches: [ main ]
+jobs:
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [ 14.x ]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: yarn install
+      - uses: serverless/github-action@master
+          with:
+            args: deploy --stage=production
+          env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            SHOPIFY_SHOP_NAME: ${{ secrets.SHOPIFY_SHOP_NAME }}
+            SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY }}
+            SHOPIFY_API_SECRET_KEY: ${{ secrets.SHOPIFY_API_SECRET_KEY }}
+            BIGQUERY_CREDENTIALS: ${{ secrets.BIGQUERY_CREDENTIALS }}
