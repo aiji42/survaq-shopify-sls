@@ -1,13 +1,10 @@
 import * as Shopify from 'shopify-api-node'
-import { BigQuery } from '@google-cloud/bigquery'
-import * as sql from 'sqlstring'
-
-const credentials = JSON.parse(
-  process.env.BIGQUERY_CREDENTIALS ??
-    '{"client_email":"","private_key":"","project_id":""}'
-) as { client_email: string; private_key: string; project_id: '' }
-
-const client = new BigQuery({ credentials, projectId: credentials.project_id })
+import { sleep } from '@libs/sleep'
+import {
+  getLatestUpdatedAt,
+  insertRecords,
+  removeDuplicates
+} from '@libs/bigquery'
 
 const shopify = new Shopify({
   shopName: process.env.SHOPIFY_SHOP_NAME,
@@ -15,15 +12,17 @@ const shopify = new Shopify({
   password: process.env.SHOPIFY_API_SECRET_KEY
 })
 
-const productListQuery = (cursor: null | string) => `{
-  products(first: 50, after: ${cursor ? `"${cursor}"` : 'null'}) {
+const productListQuery = (query: string, cursor: null | string) => `{
+  products(first: 50, query: "${query}" after: ${
+  cursor ? `"${cursor}"` : 'null'
+}) {
     edges {
       node {
         id
         title
         status
-        createdAt
-        updatedAt
+        created_at: createdAt
+        updated_at: updatedAt
       }
       cursor
     }
@@ -34,63 +33,50 @@ const productListQuery = (cursor: null | string) => `{
 }`
 
 export const products = async (): Promise<void> => {
+  const query = `updated_at:>'${await getLatestUpdatedAt('products')}'`
+  console.log('Graphql query: ', query)
   let hasNext = true
   let cursor: null | string = null
   let products = []
   while (hasNext) {
-    const data = await shopify.graphql(productListQuery(cursor))
+    const data = await shopify.graphql(productListQuery(query, cursor))
     hasNext = data.products.pageInfo.hasNextPage
 
     products = data.products.edges.reduce((res, { node, cursor: c }) => {
       cursor = c
       return [...res, node]
     }, products)
+    if (hasNext) await sleep(1000)
   }
 
-  await client.query({ query: makeProductsQuery(products) })
-  await client.query({ query: makeRemoveDuplicateRecordQuery('products') })
-}
-
-const makeProductsQuery = (data) => {
-  return sql.format(
-    `
-    INSERT INTO shopify.products (
-      id,
-      title,
-      status,
-      created_at,
-      updated_at
+  console.log('products records:', products.length)
+  if (products.length > 0)
+    await insertRecords(
+      'products',
+      ['id', 'title', 'status', 'created_at', 'updated_at'],
+      products
     )
-    VALUES ?
-    `,
-    [
-      data.map((record) => [
-        record.id,
-        record.title,
-        record.status,
-        record.createdAt,
-        record.updatedAt
-      ])
-    ]
-  )
+  await removeDuplicates('products')
 }
 
-const variantListQuery = (cursor: null | string) => `{
-  productVariants(first: 50, after: ${cursor ? `"${cursor}"` : 'null'}) {
+const variantListQuery = (query: string, cursor: null | string) => `{
+  productVariants(first: 50, query: "${query}", after: ${
+  cursor ? `"${cursor}"` : 'null'
+}) {
     edges {
       node {
         id
         title
-        displayName
+        display_name: displayName
         price
         compareAtPrice
         taxable
-        availableForSale
+        available_for_sale: availableForSale
         product {
           id
         }
-        createdAt
-        updatedAt
+        created_at: createdAt
+        updated_at: updatedAt
       }
       cursor
     }
@@ -101,85 +87,63 @@ const variantListQuery = (cursor: null | string) => `{
 }`
 
 export const variants = async (): Promise<void> => {
+  const query = `updated_at:>'${await getLatestUpdatedAt('variants')}'`
+  console.log('Graphql query: ', query)
   let hasNext = true
   let cursor: null | string = null
   let variants = []
   while (hasNext) {
-    const data = await shopify.graphql(variantListQuery(cursor))
+    const data = await shopify.graphql(variantListQuery(query, cursor))
     hasNext = data.productVariants.pageInfo.hasNextPage
 
     variants = data.productVariants.edges.reduce((res, { node, cursor: c }) => {
       cursor = c
-      return [...res, node]
+      return [
+        ...res,
+        {
+          ...node,
+          product_id: node.product.id,
+          price: Number(node.price),
+          compare_at_price: node.compareAtPrice
+            ? Number(node.compareAtPrice)
+            : null
+        }
+      ]
     }, variants)
+    if (hasNext) await sleep(1000)
   }
 
-  await client.query({
-    query: makeVariantsQuery(variants)
-  })
-  await client.query({
-    query: makeRemoveDuplicateRecordQuery('shopify.variants')
-  })
-}
-
-const makeVariantsQuery = (data) => {
-  return sql.format(
-    `
-    INSERT INTO shopify.variants (
-      id,
-      product_id,
-      title,
-      display_name,
-      price,
-      compare_at_price,
-      taxable,
-      available_for_sale,
-      created_at,
-      updated_at
+  console.log('variants records:', variants.length)
+  if (variants.length > 0)
+    await insertRecords(
+      'variants',
+      [
+        'id',
+        'product_id',
+        'title',
+        'display_name',
+        'price',
+        'compare_at_price',
+        'taxable',
+        'available_for_sale',
+        'created_at',
+        'updated_at'
+      ],
+      variants
     )
-    VALUES ?
-    `,
-    [
-      data.map((record) => [
-        record.id,
-        record.product.id,
-        record.title,
-        record.displayName,
-        Number(record.price),
-        record.compareAtPrice ? Number(record.compareAtPrice) : null,
-        record.taxable,
-        record.availableForSale,
-        record.createdAt,
-        record.updatedAt
-      ])
-    ]
-  )
+  await removeDuplicates('variants')
 }
 
-const makeRemoveDuplicateRecordQuery = (table) => {
-  return sql.format(
-    `
-    CREATE TEMPORARY TABLE ${table}_tmp AS
-    SELECT * FROM(
-      SELECT *, COUNT(id)over (PARTITION BY id ORDER BY id ROWS 3 PRECEDING) as count FROM  \`shopify.${table}\`
-    ) where count = 1;
-    DELETE FROM \`shopify.${table}\` where true;
-    INSERT INTO \`shopify.${table}\` select * EXCEPT(count) FROM ${table}_tmp;
-    DROP TABLE ${table}_tmp;
-    `
-  )
-}
-
-const orderListQuery = (cursor: null | string) => `{
-  orders(first: 10, query: "updated_at:>2021-08-08T00:00:00" after: ${
-    cursor ? `"${cursor}"` : 'null'
-  }) {
+const orderListQuery = (query: string, cursor: null | string) => `{
+  orders(first: 10, query: "${query}" after: ${
+  cursor ? `"${cursor}"` : 'null'
+}) {
     edges {
       node {
         id
         name
-        displayFinancialStatus
-        displayFulfillmentStatus
+        display_financial_status: displayFinancialStatus
+        display_fulfillment_status: displayFulfillmentStatus
         closed
         totalPriceSet {
           shopMoney {
@@ -196,12 +160,12 @@ const orderListQuery = (cursor: null | string) => `{
             amount
           }
         }
-        taxesIncluded
-        subtotalLineItemsQuantity
-        closedAt
-        cancelledAt
-        createdAt
-        updatedAt
+        taxes_included: taxesIncluded
+        subtotal_line_item_quantity: subtotalLineItemsQuantity
+        closed_at: closedAt
+        cancelled_at: cancelledAt
+        created_at: createdAt
+        updated_at: updatedAt
         lineItems(first: 10) {
           edges {
             node {
@@ -232,12 +196,59 @@ const orderListQuery = (cursor: null | string) => `{
 }`
 
 export const ordersAndLineItems = async (): Promise<void> => {
+  const query = `updated_at:>'${await getLatestUpdatedAt('orders')}'`
+  console.log('Graphql query: ', query)
   let hasNext = true
   let cursor: null | string = null
   let orders = []
   let lineItems = []
+
+  const insert = () => {
+    console.log(
+      'orders records:',
+      orders.length,
+      'line_items records:',
+      lineItems.length
+    )
+    return Promise.all([
+      insertRecords(
+        'orders',
+        [
+          'id',
+          'name',
+          'display_financial_status',
+          'display_fulfillment_status',
+          'closed',
+          'total_price',
+          'subtotal_price',
+          'total_tax',
+          'taxes_included',
+          'subtotal_line_item_quantity',
+          'closed_at',
+          'cancelled_at',
+          'created_at',
+          'updated_at'
+        ],
+        orders
+      ),
+      insertRecords(
+        'line_items',
+        [
+          'id',
+          'name',
+          'order_id',
+          'variant_id',
+          'product_id',
+          'quantity',
+          'original_total_price'
+        ],
+        lineItems
+      )
+    ])
+  }
+
   while (hasNext) {
-    const data = await shopify.graphql(orderListQuery(cursor))
+    const data = await shopify.graphql(orderListQuery(query, cursor))
     hasNext = data.orders.pageInfo.hasNextPage
 
     orders = data.orders.edges.reduce((res, { node, cursor: c }) => {
@@ -246,83 +257,41 @@ export const ordersAndLineItems = async (): Promise<void> => {
         ...lineItems,
         ...node.lineItems.edges.map(({ node: item }) => ({
           ...item,
-          orderId: node.id
+          order_id: node.id,
+          product_id: item.product.id,
+          variant_id: item.variant.id,
+          original_total_price: Number(item.originalTotalSet.shopMoney.amount)
         }))
       ]
-      return [...res, node]
+      return [
+        ...res,
+        {
+          ...node,
+          total_price: Number(node.totalPriceSet.shopMoney.amount),
+          subtotal_price: Number(node.subtotalPriceSet.shopMoney.amount),
+          total_tax: Number(node.totalTaxSet.shopMoney.amount)
+        }
+      ]
     }, orders)
+    if (hasNext) await sleep(1000)
+    if (orders.length > 99) {
+      await insert()
+      orders = []
+      lineItems = []
+    }
   }
 
-  await client.query({ query: makeOrdersQuery(orders) })
-  await client.query({ query: makeLineItemsQuery(lineItems) })
+  console.log(
+    'orders records:',
+    orders.length,
+    'line_items records:',
+    lineItems.length
+  )
+  if (orders.length > 0)
+    await insert()
+  await Promise.all([
+    removeDuplicates('orders'),
+    removeDuplicates('line_items')
+  ])
 }
 
-const makeOrdersQuery = (data) => {
-  return sql.format(
-    `
-    INSERT INTO shopify.orders (
-      id,
-      name,
-      display_financial_status,
-      display_fulfillment_status,
-      closed,
-      total_price,
-      subtotal_price,
-      total_tax,
-      taxes_included,
-      subtotal_line_item_quantity,
-      closed_at,
-      cancelled_at,
-      created_at,
-      updated_at
-    )
-    VALUES ?
-    `,
-    [
-      data.map((record) => [
-        record.id,
-        record.name,
-        record.displayFinancialStatus,
-        record.displayFulfillmentStatus,
-        record.closed,
-        Number(record.totalPriceSet.shopMoney.amount),
-        Number(record.subtotalPriceSet.shopMoney.amount),
-        Number(record.totalTaxSet.shopMoney.amount),
-        record.taxesIncluded,
-        record.subtotalLineItemsQuantity,
-        record.closedAt,
-        record.cancelledAt,
-        record.createdAt,
-        record.updatedAt
-      ])
-    ]
-  )
-}
-
-const makeLineItemsQuery = (data) => {
-  return sql.format(
-    `
-    INSERT INTO shopify.line_items (
-      id,
-      name,
-      order_id,
-      variant_id,
-      product_id,
-      quantity,
-      original_total_price
-    )
-    VALUES ?
-    `,
-    [
-      data.map((record) => [
-        record.id,
-        record.name,
-        record.orderId,
-        record.variant.id,
-        record.product.id,
-        record.quantity,
-        Number(record.originalTotalSet.shopMoney.amount)
-      ])
-    ]
-  )
-}
