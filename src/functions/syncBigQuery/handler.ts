@@ -287,11 +287,9 @@ export const ordersAndLineItems = async (): Promise<void> => {
     'line_items records:',
     lineItems.length
   )
-  if (orders.length > 0)
-    await insert()
+  if (orders.length > 0) await insert()
   await Promise.all([
     removeDuplicates('orders'),
     removeDuplicates('line_items')
   ])
 }
-

@@ -1,13 +1,17 @@
 import * as sql from 'sqlstring'
-import { BigQuery } from '@google-cloud/bigquery'
+import { BigQuery, SimpleQueryRowsResponse } from '@google-cloud/bigquery'
 
 const credentials = JSON.parse(
   process.env.BIGQUERY_CREDENTIALS ??
     '{"client_email":"","private_key":"","project_id":""}'
 ) as { client_email: string; private_key: string; project_id: '' }
 
-const client = new BigQuery({
+export const client = new BigQuery({
   credentials,
+  scopes: [
+    'https://www.googleapis.com/auth/drive',
+    'https://www.googleapis.com/auth/bigquery'
+  ],
   projectId: credentials.project_id
 })
 
@@ -30,7 +34,8 @@ export const insertRecords = (
   table: string,
   columns: string[],
   data: Record<string, string | number | boolean>[]
-): ReturnType<typeof client.query> => client.query({ query: makeInsertQuery(table, columns, data) })
+): Promise<SimpleQueryRowsResponse> =>
+  client.query({ query: makeInsertQuery(table, columns, data) })
 
 const makeInsertQuery = (
   table: string,

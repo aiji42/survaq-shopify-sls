@@ -5,6 +5,7 @@ import {
   syncVariantsTable,
   syncOrdersAndLineItemsTable
 } from '@functions/syncBigQuery'
+import { getVariations } from '@functions/getDataOnBigQuery'
 
 const serverlessConfiguration: AWS = {
   service: 'survaq-shopify-sls',
@@ -15,7 +16,11 @@ const serverlessConfiguration: AWS = {
       includeModules: true
     }
   },
-  plugins: ['serverless-webpack', 'serverless-dotenv-plugin'],
+  plugins: [
+    'serverless-webpack',
+    'serverless-dotenv-plugin',
+    'serverless-offline'
+  ],
   provider: {
     name: 'aws',
     runtime: 'nodejs14.x',
@@ -27,7 +32,8 @@ const serverlessConfiguration: AWS = {
   functions: {
     syncProductsTable,
     syncVariantsTable,
-    syncOrdersAndLineItemsTable
+    syncOrdersAndLineItemsTable,
+    getVariations
   }
 }
 
