@@ -62,7 +62,15 @@ export const getFundings: APIGatewayProxyHandler = async (event) => {
     const [[data]] = await client.query({
       query: makeFundingsQuery(Number(product))
     })
-    return { statusCode: 200, body: JSON.stringify(data ?? {}) }
+
+    if (!data)
+      return { statusCode: 404, body: JSON.stringify({ message: 'Not found' }) }
+
+    const { close_on, ...rest } = data
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ ...rest, close_on: close_on?.value })
+    }
   } catch (e) {
     console.error(e)
     return { statusCode: 500, body: JSON.stringify({ message: e.message }) }
@@ -74,9 +82,14 @@ const makeFundingsQuery = (product: number) =>
     `
 SELECT
   IFNULL(SUM(tmp.price), 0) + IFNULL(sum(f.total_price_sum), 0) AS price,
-  IFNULL(SUM(tmp.supporters), 0) + IFNULL(sum(f.supporter_sum), 0) AS supporters
+  IFNULL(SUM(tmp.supporters), 0) + IFNULL(sum(f.supporter_sum), 0) AS supporters,
+  MIN(close_on) AS close_on,
+  MIN(objective_price) AS objective_price
 FROM (
-    SELECT product_id, sum(original_total_price) AS price, count(distinct order_id) AS supporters
+    SELECT
+      product_id,
+      sum(original_total_price) AS price,
+      count(distinct order_id) AS supporters
     FROM shopify.line_items li
     WHERE product_id = "gid://shopify/Product/?"
     GROUP BY product_id
@@ -84,7 +97,7 @@ FROM (
 LEFT JOIN shopify.fundings f
   ON CONCAT('gid://shopify/Product/', f.product_id) = tmp.product_id
 GROUP BY f.product_id
-
+LIMIT 1
 `,
     [product]
   )
