@@ -11,6 +11,10 @@ type VariationRecord = {
   label: string
 }
 
+const corsHeader = {
+  'Access-Control-Allow-Origin': '*'
+}
+
 export const getVariations: APIGatewayProxyHandler = async (event) => {
   const product = event.pathParameters.productId
   try {
@@ -24,10 +28,18 @@ export const getVariations: APIGatewayProxyHandler = async (event) => {
         [variantId]: [...(res[variantId] ?? []), record]
       }
     }, {})
-    return { statusCode: 200, body: JSON.stringify(result) }
+    return {
+      statusCode: 200,
+      body: JSON.stringify(result),
+      headers: { ...corsHeader }
+    }
   } catch (e) {
     console.error(e)
-    return { statusCode: 500, body: JSON.stringify({ message: e.message }) }
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: e.message }),
+      headers: { ...corsHeader }
+    }
   }
 }
 
@@ -50,16 +62,25 @@ export const getFundings: APIGatewayProxyHandler = async (event) => {
     })
 
     if (!data)
-      return { statusCode: 404, body: JSON.stringify({ message: 'Not found' }) }
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ message: 'Not found' }),
+        headers: { ...corsHeader }
+      }
 
     const { close_on, ...rest } = data
     return {
       statusCode: 200,
-      body: JSON.stringify({ ...rest, close_on: close_on?.value })
+      body: JSON.stringify({ ...rest, close_on: close_on?.value }),
+      headers: { ...corsHeader }
     }
   } catch (e) {
     console.error(e)
-    return { statusCode: 500, body: JSON.stringify({ message: e.message }) }
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: e.message }),
+      headers: { ...corsHeader }
+    }
   }
 }
 
