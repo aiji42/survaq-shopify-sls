@@ -22,7 +22,7 @@ export const getVariations: AWS['functions'][string] = {
               name: 'request.path.productId'
             }
           ],
-          ttlInSeconds: 15
+          ttlInSeconds: 3600
         }
       }
     }
@@ -40,7 +40,18 @@ export const getFundings: AWS['functions'][string] = {
       http: {
         path: '/products/{productId}/fundings',
         method: 'get',
-        cors: true
+        cors: true,
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        caching: {
+          enabled: true,
+          cacheKeyParameters: [
+            {
+              name: 'request.path.productId'
+            }
+          ],
+          ttlInSeconds: 3600
+        }
       }
     }
   ],
