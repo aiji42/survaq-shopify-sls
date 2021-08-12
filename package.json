@@ -32,6 +32,7 @@
     "lint-staged": "^11.1.2",
     "prettier": "^2.3.2",
     "serverless": "^2.23.0",
+    "serverless-api-gateway-caching": "^1.7.4",
     "serverless-dotenv-plugin": "^3.9.0",
     "serverless-offline": "^8.0.0",
     "serverless-webpack": "^5.3.5",

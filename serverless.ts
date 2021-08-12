@@ -14,11 +14,15 @@ const serverlessConfiguration: AWS = {
     webpack: {
       webpackConfig: './webpack.config.js',
       includeModules: true
+    },
+    apiGatewayCaching: {
+      enabled: true
     }
   },
   plugins: [
     'serverless-webpack',
     'serverless-dotenv-plugin',
+    'serverless-api-gateway-caching',
     'serverless-offline'
   ],
   provider: {

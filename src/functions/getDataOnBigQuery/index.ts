@@ -11,7 +11,14 @@ export const getVariations: AWS['functions'][string] = {
     {
       httpApi: {
         path: '/products/{productId}/variations',
-        method: 'get'
+        method: 'get',
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        caching: {
+          enabled: true,
+          cacheKeyParameters: { name: 'request.path.productId' },
+          ttlInSeconds: 15
+        }
       }
     }
   ],
