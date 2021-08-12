@@ -12,14 +12,7 @@ type VariationRecord = {
 }
 
 export const getVariations: APIGatewayProxyHandler = async (event) => {
-  const product = event.queryStringParameters?.product
-  if (!product)
-    return {
-      statusCode: 400,
-      body: JSON.stringify({
-        message: 'Please request with ?product=xxxxx'
-      })
-    }
+  const product = event.pathParameters.productId
   try {
     const [data] = (await client.query({
       query: makeVariationsQuery(Number(product))
@@ -50,14 +43,7 @@ LIMIT 1000
   )
 
 export const getFundings: APIGatewayProxyHandler = async (event) => {
-  const product = event.queryStringParameters?.product
-  if (!product)
-    return {
-      statusCode: 400,
-      body: JSON.stringify({
-        message: 'Please request with ?product=xxxxx'
-      })
-    }
+  const product = event.pathParameters.productId
   try {
     const [[data]] = await client.query({
       query: makeFundingsQuery(Number(product))

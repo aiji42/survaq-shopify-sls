@@ -10,7 +10,7 @@ export const getVariations: AWS['functions'][string] = {
   events: [
     {
       httpApi: {
-        path: '/variations',
+        path: '/products/{productId}/variations',
         method: 'get'
       }
     }
@@ -26,7 +26,7 @@ export const getFundings: AWS['functions'][string] = {
   events: [
     {
       httpApi: {
-        path: '/fundings',
+        path: '/products/{productId}/fundings',
         method: 'get'
       }
     }
