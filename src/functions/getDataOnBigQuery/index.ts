@@ -17,7 +17,11 @@ export const getVariations: AWS['functions'][string] = {
         // @ts-ignore
         caching: {
           enabled: true,
-          cacheKeyParameters: ['request.path.productId'],
+          cacheKeyParameters: [
+            {
+              name: 'request.path.productId'
+            }
+          ],
           ttlInSeconds: 15
         }
       }
