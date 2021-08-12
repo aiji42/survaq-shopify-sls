@@ -9,9 +9,10 @@ export const getVariations: AWS['functions'][string] = {
   handler: `${handlerPath(__dirname)}/handler.getVariations`,
   events: [
     {
-      httpApi: {
+      http: {
         path: '/products/{productId}/variations',
         method: 'get',
+        cors: true,
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         caching: {
@@ -32,9 +33,10 @@ export const getFundings: AWS['functions'][string] = {
   handler: `${handlerPath(__dirname)}/handler.getFundings`,
   events: [
     {
-      httpApi: {
+      http: {
         path: '/products/{productId}/fundings',
-        method: 'get'
+        method: 'get',
+        cors: true
       }
     }
   ],
