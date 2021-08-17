@@ -12,7 +12,7 @@ export const syncProductsTable: AWS['functions'][string] = {
   handler: `${handlerPath(__dirname)}/handler.products`,
   events: [
     {
-      schedule: 'cron(0 */2 * * ? *)'
+      schedule: 'cron(0 * * * ? *)'
     }
   ],
   timeout: 60,
@@ -25,7 +25,7 @@ export const syncVariantsTable: AWS['functions'][string] = {
   handler: `${handlerPath(__dirname)}/handler.variants`,
   events: [
     {
-      schedule: 'cron(0 */2 * * ? *)'
+      schedule: 'cron(0 * * * ? *)'
     }
   ],
   timeout: 60,
@@ -38,7 +38,7 @@ export const syncOrdersAndLineItemsTable: AWS['functions'][string] = {
   handler: `${handlerPath(__dirname)}/handler.ordersAndLineItems`,
   events: [
     {
-      schedule: 'cron(0 */2 * * ? *)'
+      schedule: 'cron(0 * * * ? *)'
     }
   ],
   timeout: 180,
