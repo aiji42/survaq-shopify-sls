@@ -12,9 +12,7 @@ export const syncProductsTable: AWS['functions'][string] = {
   handler: `${handlerPath(__dirname)}/handler.products`,
   events: [
     {
-      schedule: {
-        rate: 'rate(2 hours)'
-      }
+      schedule: 'cron(0 */2 * * ? *)'
     }
   ],
   timeout: 60,
