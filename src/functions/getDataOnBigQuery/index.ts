@@ -60,3 +60,31 @@ export const getFundings: AWS['functions'][string] = {
     ...environment
   }
 }
+
+export const getAdditionalProperties: AWS['functions'][string] = {
+  handler: `${handlerPath(__dirname)}/handler.getAdditionalProperties`,
+  events: [
+    {
+      http: {
+        path: '/products/{productId}/additional-properties',
+        method: 'get',
+        cors: true,
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        caching: {
+          enabled: true,
+          cacheKeyParameters: [
+            {
+              name: 'request.path.productId'
+            }
+          ],
+          ttlInSeconds: 3600
+        }
+      }
+    }
+  ],
+  timeout: 60,
+  environment: {
+    ...environment
+  }
+}

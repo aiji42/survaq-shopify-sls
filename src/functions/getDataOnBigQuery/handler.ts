@@ -108,3 +108,51 @@ LIMIT 1
 `,
     [product]
   )
+
+type AdditionalPropertiesRecord = {
+  id: number
+  variantId: number
+  properties: string
+  value: string
+}
+
+export const getAdditionalProperties: APIGatewayProxyHandler = async (
+  event
+) => {
+  const product = event.pathParameters.productId
+  try {
+    const [data] = (await client.query({
+      query: makeAdditionalPropertiesQuery(Number(product))
+    })) as unknown as AdditionalPropertiesRecord[][]
+    const result = data.reduce((res, record) => {
+      const { variantId } = record
+      return {
+        ...res,
+        [variantId]: [...(res[variantId] ?? []), record]
+      }
+    }, {})
+    return {
+      statusCode: 200,
+      body: JSON.stringify(result),
+      headers: { ...corsHeader }
+    }
+  } catch (e) {
+    console.error(e)
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: e.message }),
+      headers: { ...corsHeader }
+    }
+  }
+}
+
+const makeAdditionalPropertiesQuery = (product: number) =>
+  sql.format(
+    `
+SELECT id, variant_id as variantId, properties, value
+FROM shopify.additional_properties
+WHERE product_id = ?
+LIMIT 1000
+`,
+    [product]
+  )

@@ -5,7 +5,11 @@ import {
   syncVariantsTable,
   syncOrdersAndLineItemsTable
 } from '@functions/syncBigQuery'
-import { getVariations, getFundings } from '@functions/getDataOnBigQuery'
+import {
+  getVariations,
+  getFundings,
+  getAdditionalProperties
+} from '@functions/getDataOnBigQuery'
 
 const serverlessConfiguration: AWS = {
   service: 'survaq-shopify-sls',
@@ -38,7 +42,8 @@ const serverlessConfiguration: AWS = {
     syncVariantsTable,
     syncOrdersAndLineItemsTable,
     getVariations,
-    getFundings
+    getFundings,
+    getAdditionalProperties
   }
 }
 
