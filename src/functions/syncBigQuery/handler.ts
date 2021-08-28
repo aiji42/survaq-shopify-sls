@@ -5,6 +5,8 @@ import {
   insertRecords,
   removeDuplicates
 } from '@libs/bigquery'
+import fetch from 'node-fetch'
+import * as dayjs from 'dayjs'
 
 const shopify = new Shopify({
   shopName: process.env.SHOPIFY_SHOP_NAME,
@@ -293,3 +295,102 @@ export const ordersAndLineItems = async (): Promise<void> => {
     removeDuplicates('line_items')
   ])
 }
+
+type Paging = {
+  cursors: {
+    before: string
+    after: string
+  }
+  next?: string
+  previous?: string
+}
+
+type AdSetInsights = {
+  data: {
+    impressions: string
+    spend: string
+    reach: string
+    date_start: string
+    date_stop: string
+  }[]
+  paging: Paging
+}
+
+type AdSet = {
+  data: { name: string; id: string; insights?: AdSetInsights }[]
+  paging: Paging
+}
+
+type AdAccount = {
+  data: { name: string; id: string; adsets: AdSet }[]
+  paging: Paging
+}
+
+type Res = {
+  owned_ad_accounts: AdAccount
+}
+
+export const syncFacebookAdReports = async (): Promise<void> => {
+  const res = await Promise.all(
+    range(0, 13)
+      .map((d) => dayjs().subtract(d, 'day').format('YYYY-MM-DD'))
+      .map((inspectDate) => {
+        return new Promise((resolve) => {
+          getAdReportRecords(inspectDate).then((records) => resolve(records))
+        })
+      })
+  )
+
+  console.log(res.flat())
+}
+
+type AdReportRecord = {
+  adAccountId: string
+  adAccountName: string
+  adSetId: string
+  adSetName: string
+  impressions: string
+  spend: string
+  reach: string
+  date: string
+}
+
+const getAdReportRecords = async (
+  inspectDate: string
+): Promise<AdReportRecord[]> => {
+  const records: AdReportRecord[] = []
+  let next = `https://graph.facebook.com/v11.0/${process.env.FACEBOOK_BUSINESS_ACCOUNT_ID}?fields=owned_ad_accounts.limit(5){name,adsets.limit(20){name,insights.time_range({since:'${inspectDate}',until:'${inspectDate}'}){impressions,spend,reach}}}&access_token=${process.env.FACEBOOK_GRAPH_API_TOKEN}`
+  while (next) {
+    const res = await fetch(next).then(
+      (res) => res.json() as Promise<Res | AdAccount>
+    )
+    next =
+      'owned_ad_accounts' in res
+        ? res.owned_ad_accounts.paging.next
+        : res.paging.next
+    const adAccount =
+      'owned_ad_accounts' in res ? res.owned_ad_accounts.data : res.data
+
+    adAccount.forEach(({ id: adAccountId, name: adAccountName, adsets }) => {
+      adsets.data.forEach(({ id: adSetId, name: adSetName, insights }) => {
+        insights?.data.forEach(
+          ({ impressions, spend, reach, date_start: date }) => {
+            records.push({
+              adAccountId,
+              adAccountName,
+              adSetId,
+              adSetName,
+              impressions,
+              spend,
+              reach,
+              date
+            })
+          }
+        )
+      })
+    })
+  }
+  return records
+}
+
+const range = (start, end) => [...Array(end + 1).keys()].slice(start)
