@@ -3,7 +3,8 @@ import type { AWS } from '@serverless/typescript'
 import {
   syncProductsTable,
   syncVariantsTable,
-  syncOrdersAndLineItemsTable
+  syncOrdersAndLineItemsTable,
+  syncFacebookAdReports
 } from '@functions/syncBigQuery'
 import {
   getVariations,
@@ -41,6 +42,7 @@ const serverlessConfiguration: AWS = {
     syncProductsTable,
     syncVariantsTable,
     syncOrdersAndLineItemsTable,
+    syncFacebookAdReports,
     getVariations,
     getFundings,
     getAdditionalProperties

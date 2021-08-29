@@ -53,6 +53,7 @@ export const products = async (): Promise<void> => {
   if (products.length > 0)
     await insertRecords(
       'products',
+      'shopify',
       ['id', 'title', 'status', 'created_at', 'updated_at'],
       products
     )
@@ -117,6 +118,7 @@ export const variants = async (): Promise<void> => {
   if (variants.length > 0)
     await insertRecords(
       'variants',
+      'shopify',
       [
         'id',
         'product_id',
@@ -213,6 +215,7 @@ export const ordersAndLineItems = async (): Promise<void> => {
     return Promise.all([
       insertRecords(
         'orders',
+        'shopify',
         [
           'id',
           'name',
@@ -233,6 +236,7 @@ export const ordersAndLineItems = async (): Promise<void> => {
       ),
       insertRecords(
         'line_items',
+        'shopify',
         [
           'id',
           'name',
