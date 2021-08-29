@@ -349,9 +349,9 @@ type AdReportRecord = {
   adAccountName: string
   adSetId: string
   adSetName: string
-  impressions: string
-  spend: string
-  reach: string
+  impressions: number
+  spend: number
+  reach: number
   date: string
 }
 
@@ -380,9 +380,9 @@ const getAdReportRecords = async (
               adAccountName,
               adSetId,
               adSetName,
-              impressions,
-              spend,
-              reach,
+              impressions: Number(impressions),
+              spend: Number(spend),
+              reach: Number(reach),
               date
             })
           }
