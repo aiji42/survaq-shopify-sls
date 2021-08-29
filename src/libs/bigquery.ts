@@ -76,7 +76,7 @@ export const removeDuplicates = async (
   })
 }
 
-const makeRemoveDuplicateRecordQuery = (table: string, dataset = 'shopify') => {
+const makeRemoveDuplicateRecordQuery = (table: string, dataset: string) => {
   return sql.format(
     `
     CREATE TEMPORARY TABLE ${dataset}_${table}_tmp AS
