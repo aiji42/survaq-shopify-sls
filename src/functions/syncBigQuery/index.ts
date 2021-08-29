@@ -50,7 +50,7 @@ export const syncOrdersAndLineItemsTable: AWS['functions'][string] = {
 }
 
 export const syncFacebookAdReports: AWS['functions'][string] = {
-  handler: `${handlerPath(__dirname)}/facebook.syncAdReports`,
+  handler: `${handlerPath(__dirname)}/facebook.adReports`,
   events: [
     {
       schedule: 'cron(0 9 * * ? *)'

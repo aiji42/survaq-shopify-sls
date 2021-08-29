@@ -39,7 +39,7 @@ type Res = {
   owned_ad_accounts: AdAccount
 }
 
-export const syncAdReports = async (): Promise<void> => {
+export const adReports = async (): Promise<void> => {
   const res = await Promise.all<AdReportRecord[]>(
     range(0, 13)
       .map((d) => dayjs().subtract(d, 'day').format('YYYY-MM-DD'))
