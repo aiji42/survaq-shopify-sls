@@ -1,5 +1,6 @@
 import fetch from 'node-fetch'
 import * as dayjs from 'dayjs'
+import { insertRecords, removeDuplicates } from '@libs/bigquery'
 
 type Paging = {
   cursors: {
@@ -39,7 +40,7 @@ type Res = {
 }
 
 export const syncAdReports = async (): Promise<void> => {
-  const res = await Promise.all(
+  const res = await Promise.all<AdReportRecord[]>(
     range(0, 13)
       .map((d) => dayjs().subtract(d, 'day').format('YYYY-MM-DD'))
       .map((inspectDate) => {
@@ -49,7 +50,30 @@ export const syncAdReports = async (): Promise<void> => {
       })
   )
 
-  console.log(res.flat())
+  const records = res.flat()
+  console.log('records: ', records.length)
+  await insertRecords(
+    'ads',
+    'facebook',
+    [
+      'id',
+      'account_id',
+      'account_name',
+      'set_id',
+      'set_name',
+      'impressions',
+      'spend',
+      'reach',
+      'clicks',
+      'conversions',
+      'return',
+      'date',
+      'datetime'
+    ],
+    records
+  )
+
+  await removeDuplicates('ads', 'facebook')
 }
 
 type AdReportRecord = {
