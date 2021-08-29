@@ -11,7 +11,7 @@ const environment = {
 }
 
 export const syncProductsTable: AWS['functions'][string] = {
-  handler: `${handlerPath(__dirname)}/handler.products`,
+  handler: `${handlerPath(__dirname)}/shopify.products`,
   events: [
     {
       schedule: 'cron(0 * * * ? *)'
@@ -24,7 +24,7 @@ export const syncProductsTable: AWS['functions'][string] = {
 }
 
 export const syncVariantsTable: AWS['functions'][string] = {
-  handler: `${handlerPath(__dirname)}/handler.variants`,
+  handler: `${handlerPath(__dirname)}/shopify.variants`,
   events: [
     {
       schedule: 'cron(0 * * * ? *)'
@@ -37,7 +37,7 @@ export const syncVariantsTable: AWS['functions'][string] = {
 }
 
 export const syncOrdersAndLineItemsTable: AWS['functions'][string] = {
-  handler: `${handlerPath(__dirname)}/handler.ordersAndLineItems`,
+  handler: `${handlerPath(__dirname)}/shopify.ordersAndLineItems`,
   events: [
     {
       schedule: 'cron(0 * * * ? *)'
@@ -50,7 +50,7 @@ export const syncOrdersAndLineItemsTable: AWS['functions'][string] = {
 }
 
 export const syncFacebookAdReports: AWS['functions'][string] = {
-  handler: `${handlerPath(__dirname)}/handler.syncFacebookAdReports`,
+  handler: `${handlerPath(__dirname)}/facebook.syncAdReports`,
   events: [
     {
       schedule: 'cron(0 * * * ? *)'
