@@ -56,7 +56,7 @@ export const syncFacebookAdReports: AWS['functions'][string] = {
       schedule: 'cron(0 9 * * ? *)'
     }
   ],
-  timeout: 60,
+  timeout: 180,
   environment: {
     ...environment
   }

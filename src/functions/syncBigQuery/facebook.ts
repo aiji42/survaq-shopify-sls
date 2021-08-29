@@ -52,27 +52,27 @@ export const adReports = async (): Promise<void> => {
 
   const records = res.flat()
   console.log('records: ', records.length)
-  await insertRecords(
-    'ads',
-    'facebook',
-    [
-      'id',
-      'account_id',
-      'account_name',
-      'set_id',
-      'set_name',
-      'impressions',
-      'spend',
-      'reach',
-      'clicks',
-      'conversions',
-      'return',
-      'date',
-      'datetime'
-    ],
-    records
-  )
-
+  if (records.length > 0)
+    await insertRecords(
+      'ads',
+      'facebook',
+      [
+        'id',
+        'account_id',
+        'account_name',
+        'set_id',
+        'set_name',
+        'impressions',
+        'spend',
+        'reach',
+        'clicks',
+        'conversions',
+        'return',
+        'date',
+        'datetime'
+      ],
+      records
+    )
   await removeDuplicates('ads', 'facebook')
 }
 
