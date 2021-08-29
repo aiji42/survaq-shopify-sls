@@ -348,10 +348,11 @@ export const syncFacebookAdReports = async (): Promise<void> => {
 }
 
 type AdReportRecord = {
-  adAccountId: string
-  adAccountName: string
-  adSetId: string
-  adSetName: string
+  id: string
+  account_id: string
+  account_name: string
+  set_id: string
+  set_name: string
   impressions: number
   spend: number
   reach: number
@@ -359,6 +360,7 @@ type AdReportRecord = {
   conversions: number
   return: number
   date: string
+  datetime: string
 }
 
 const getAdReportRecords = async (
@@ -377,8 +379,8 @@ const getAdReportRecords = async (
     const adAccount =
       'owned_ad_accounts' in res ? res.owned_ad_accounts.data : res.data
 
-    adAccount.forEach(({ id: adAccountId, name: adAccountName, adsets }) => {
-      adsets.data.forEach(({ id: adSetId, name: adSetName, insights }) => {
+    adAccount.forEach(({ id: accountId, name: accountName, adsets }) => {
+      adsets.data.forEach(({ id: setId, name: setName, insights }) => {
         insights?.data.forEach(
           ({
             impressions,
@@ -390,10 +392,11 @@ const getAdReportRecords = async (
             date_start: date
           }) => {
             records.push({
-              adAccountId,
-              adAccountName,
-              adSetId,
-              adSetName,
+              id: `${setId}_${date}`,
+              account_id: accountId,
+              account_name: accountName,
+              set_id: setId,
+              set_name: setName,
               impressions: Number(impressions),
               spend: Number(spend),
               reach: Number(reach),
@@ -408,7 +411,8 @@ const getAdReportRecords = async (
                   ({ action_type }) => action_type === 'omni_purchase'
                 )?.value || 0
               ),
-              date
+              date,
+              datetime: `${date}T00:00:00`
             })
           }
         )
