@@ -72,7 +72,7 @@ export const removeDuplicates = async (
   console.log('Removing duplicated records: ', table)
 
   await client.query({
-    query: makeRemoveDuplicateRecordQuery(table)
+    query: makeRemoveDuplicateRecordQuery(table, dataset)
   })
 }
 
