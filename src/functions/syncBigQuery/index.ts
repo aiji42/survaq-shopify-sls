@@ -53,10 +53,10 @@ export const syncFacebookAdReports: AWS['functions'][string] = {
   handler: `${handlerPath(__dirname)}/facebook.syncAdReports`,
   events: [
     {
-      schedule: 'cron(0 * * * ? *)'
+      schedule: 'cron(0 9 * * ? *)'
     }
   ],
-  timeout: 180,
+  timeout: 60,
   environment: {
     ...environment
   }
