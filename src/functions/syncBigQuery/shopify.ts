@@ -263,7 +263,7 @@ export const ordersAndLineItems = async (): Promise<void> => {
           ...item,
           order_id: node.id,
           product_id: item.product.id,
-          variant_id: item.variant.id,
+          variant_id: item.variant?.id ?? null,
           original_total_price: Number(item.originalTotalSet.shopMoney.amount)
         }))
       ]
