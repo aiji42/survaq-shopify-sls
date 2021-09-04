@@ -188,6 +188,21 @@ const orderListQuery = (query: string, cursor: null | string) => `{
             }
           }
         }
+        customerJourneySummary {
+          firstVisit {
+            landingPage
+            referrerUrl
+            source
+            sourceType
+            utmParameters {
+              source
+              medium
+              campaign
+              content
+              term
+            }
+          }
+        }
       }
       cursor
     }
@@ -230,7 +245,16 @@ export const ordersAndLineItems = async (): Promise<void> => {
           'closed_at',
           'cancelled_at',
           'created_at',
-          'updated_at'
+          'updated_at',
+          'landing_page',
+          'referrer_url',
+          'source',
+          'source_type',
+          'utm_source',
+          'utm_medium',
+          'utm_campaign',
+          'utm_content',
+          'utm_term'
         ],
         orders
       ),
@@ -267,13 +291,27 @@ export const ordersAndLineItems = async (): Promise<void> => {
           original_total_price: Number(item.originalTotalSet.shopMoney.amount)
         }))
       ]
+      const visit = node.customerJourneySummary?.firstVisit
+      const utmSource = decode(visit?.utmParameters?.source)
       return [
         ...res,
         {
           ...node,
           total_price: Number(node.totalPriceSet.shopMoney.amount),
           subtotal_price: Number(node.subtotalPriceSet.shopMoney.amount),
-          total_tax: Number(node.totalTaxSet.shopMoney.amount)
+          total_tax: Number(node.totalTaxSet.shopMoney.amount),
+          landing_page: visit?.landingPage ?? null,
+          referrer_url: visit?.referrerUrl ?? null,
+          source:
+            (visit?.source === 'an unknown source'
+              ? utmSource
+              : visit?.source) ?? null,
+          source_type: visit?.sourceType ?? null,
+          utm_source: utmSource ?? null,
+          utm_medium: decode(visit?.utmParameters?.medium) ?? null,
+          utm_campaign: decode(visit?.utmParameters?.campaign) ?? null,
+          utm_content: decode(visit?.utmParameters?.content) ?? null,
+          utm_term: decode(visit?.utmParameters?.term) ?? null
         }
       ]
     }, orders)
@@ -296,4 +334,13 @@ export const ordersAndLineItems = async (): Promise<void> => {
     removeDuplicates('orders'),
     removeDuplicates('line_items')
   ])
+}
+
+const decode = (src: string | null | undefined): string | null | undefined => {
+  if (typeof src !== 'string') return src
+  try {
+    return decodeURI(src)
+  } catch (_) {
+    return src
+  }
 }
