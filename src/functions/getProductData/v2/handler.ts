@@ -3,6 +3,8 @@ import { createClient } from 'microcms-js-sdk'
 import { Product, Rule } from '@functions/getProductData/v2/product'
 import * as dayjs from 'dayjs'
 import * as timezone from 'dayjs/plugin/timezone'
+import * as utc from 'dayjs/plugin/utc'
+dayjs.extend(utc)
 dayjs.extend(timezone)
 dayjs.tz.setDefault('Asia/Tokyo')
 
@@ -62,8 +64,11 @@ export const getProductDataForClient: APIGatewayProxyHandler = async (
 
 const makeSchedule = (leadDays: number): Schedule => {
   const date = dayjs().add(leadDays, 'day')
-  const [year, month, day] = [date.year(), date.month() + 1, date.date()]
-  console.log([year, month, day])
+  const [year, month, day] = [
+    date.tz().year(),
+    date.tz().month() + 1,
+    date.tz().date()
+  ]
   const [term, termText]: [Schedule['term'], string] =
     1 <= day && day <= 10
       ? ['early', '上旬']
@@ -74,6 +79,7 @@ const makeSchedule = (leadDays: number): Schedule => {
     year,
     month,
     term,
+    // FIXME
     fulltext: `${year}年${month}月${termText}(${month}/xx〜${month}/yy)`
   }
 }
