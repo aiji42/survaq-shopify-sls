@@ -2,7 +2,8 @@ import { handlerPath } from '@libs/handlerResolver'
 import { AWS } from '@serverless/typescript'
 
 const environment = {
-  BIGQUERY_CREDENTIALS: '${env:BIGQUERY_CREDENTIALS}'
+  BIGQUERY_CREDENTIALS: '${env:BIGQUERY_CREDENTIALS}',
+  MICROCMS_API_TOKEN: '${env:MICROCMS_API_TOKEN}'
 }
 
 export const getVariations: AWS['functions'][string] = {
@@ -80,6 +81,23 @@ export const getAdditionalProperties: AWS['functions'][string] = {
           ],
           ttlInSeconds: 3600
         }
+      }
+    }
+  ],
+  timeout: 60,
+  environment: {
+    ...environment
+  }
+}
+
+export const getProductDataV2: AWS['functions'][string] = {
+  handler: `${handlerPath(__dirname)}/v2/handler.getProductDataForClient`,
+  events: [
+    {
+      http: {
+        path: '/v2/products/{productId}',
+        method: 'get',
+        cors: true
       }
     }
   ],
