@@ -9,8 +9,9 @@ import {
 import {
   getVariations,
   getFundings,
-  getAdditionalProperties
-} from '@functions/getDataOnBigQuery'
+  getAdditionalProperties,
+  getProductDataV2
+} from '@functions/getProductData'
 
 const serverlessConfiguration: AWS = {
   service: 'survaq-shopify-sls',
@@ -45,7 +46,8 @@ const serverlessConfiguration: AWS = {
     syncFacebookAdReports,
     getVariations,
     getFundings,
-    getAdditionalProperties
+    getAdditionalProperties,
+    getProductDataV2
   }
 }
 
