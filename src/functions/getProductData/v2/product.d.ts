@@ -7,13 +7,20 @@ export type SKU = {
 
 export type Foundation = {
   fieldId: string
-  objectivePrice: number
+  objectivePrice?: number
+  totalPrice?: number
   closeOn: string
+  supporter?: number
 }
 
 export type Rule = {
   fieldId: string
   leadDays: number
+  bulkPurchase?: number
+  cyclePurchase: {
+    value: 'monthly' | 'triple'
+    label: string
+  }
 }
 
 export type Variant = {
