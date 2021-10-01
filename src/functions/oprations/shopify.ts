@@ -5,12 +5,28 @@ import {
 } from '@libs/bigquery'
 import { sleep } from '@libs/sleep'
 import * as Shopify from 'shopify-api-node'
+import * as dayjs from 'dayjs'
+
+type Dayjs = dayjs.Dayjs
 
 const shopify = new Shopify({
   shopName: process.env.SHOPIFY_SHOP_NAME,
   apiKey: process.env.SHOPIFY_API_KEY,
   password: process.env.SHOPIFY_API_SECRET_KEY
 })
+
+type CustomAttributes = {
+  key: string
+  value: string
+}[]
+
+type LineItem = {
+  id: string
+  quantity
+  variant: { id: string }
+  product: { id: string }
+  customAttributes: CustomAttributes
+}
 
 const lineItemsQuery = (query: string, cursor: null | string) => `{
   orders(first: 20, query: "${query}" after: ${
@@ -96,4 +112,33 @@ export const ordersAndLineItems = async (): Promise<void> => {
   console.log('operations records:', operations.length)
   console.log(operations)
   if (operations.length > 0) await insert()
+}
+
+const makeOperations = (lineItem: LineItem, referenceDate: Dayjs) => {
+  const keyValues = lineItem.customAttributes.reduce(
+    (res, { key, value }) => ({ ...res, [key]: value }),
+    {}
+  )
+  if (!keyValues['delivery-schedule'] || !keyValues['sku-quantity']) return null
+  if (parseSchedule(keyValues['delivery-schedule']) > referenceDate) return null
+  const skuQuantities: { sku: string; quantity: number }[] = JSON.parse(
+    keyValues['sku-quantity']
+  )
+  skuQuantities.map(({ sku, quantity }) => ({
+    product_id: lineItem.product.id,
+    valiant_id: lineItem.variant.id,
+    line_item_id: lineItem.id,
+    sku,
+    quantity: quantity * lineItem.quantity,
+    operated_at: dayjs().toISOString(),
+    delivery_schedule_date: parseSchedule(keyValues['delivery-schedule'])
+      .toISOString()
+      .slice(0, 10)
+  }))
+}
+
+const parseSchedule = (value: string): Dayjs => {
+  const [year, month, term] = value.split('-')
+  const date = term === 'late' ? 28 : term === 'middle' ? 18 : 8
+  return dayjs(`${year}-${month}-${date}`)
 }
