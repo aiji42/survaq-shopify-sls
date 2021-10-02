@@ -10,6 +10,8 @@ const environment = {
   FACEBOOK_BUSINESS_ACCOUNT_ID: '${env:FACEBOOK_BUSINESS_ACCOUNT_ID}'
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 export const syncProductsTable: AWS['functions'][string] = {
   handler: `${handlerPath(__dirname)}/shopify.products`,
   events: [
@@ -23,6 +25,8 @@ export const syncProductsTable: AWS['functions'][string] = {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 export const syncVariantsTable: AWS['functions'][string] = {
   handler: `${handlerPath(__dirname)}/shopify.variants`,
   events: [
@@ -36,6 +40,8 @@ export const syncVariantsTable: AWS['functions'][string] = {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 export const syncOrdersAndLineItemsTable: AWS['functions'][string] = {
   handler: `${handlerPath(__dirname)}/shopify.ordersAndLineItems`,
   events: [
@@ -49,6 +55,8 @@ export const syncOrdersAndLineItemsTable: AWS['functions'][string] = {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 export const syncFacebookAdReports: AWS['functions'][string] = {
   handler: `${handlerPath(__dirname)}/facebook.adReports`,
   events: [

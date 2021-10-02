@@ -12,7 +12,7 @@ dayjs.tz.setDefault('Asia/Tokyo')
 
 const cmsClient = createClient({
   serviceDomain: 'survaq-shopify',
-  apiKey: process.env.MICROCMS_API_TOKEN
+  apiKey: process.env.MICROCMS_API_TOKEN ?? ''
 })
 
 const corsHeader = {
@@ -34,7 +34,7 @@ type NewRule = Rule & {
 export const getProductDataForClient: APIGatewayProxyHandler = async (
   event
 ) => {
-  const productId = event.pathParameters.productId
+  const productId = event.pathParameters?.productId
   try {
     const cmsReq = cmsClient.get<Product>({
       endpoint: 'products',

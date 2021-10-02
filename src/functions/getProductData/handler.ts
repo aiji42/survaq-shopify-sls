@@ -22,7 +22,7 @@ const corsHeader = {
 }
 
 export const getVariations: APIGatewayProxyHandler = async (event) => {
-  const product = event.pathParameters.productId
+  const product = event.pathParameters?.productId
   try {
     const [data] = (await client.query({
       query: makeVariationsQuery(Number(product))
@@ -61,7 +61,7 @@ LIMIT 1000
   )
 
 export const getFundings: APIGatewayProxyHandler = async (event) => {
-  const product = event.pathParameters.productId
+  const product = event.pathParameters?.productId
   try {
     const [[data]] = await client.query({
       query: makeFundingsQuery(Number(product))
@@ -125,7 +125,7 @@ type AdditionalPropertiesRecord = {
 export const getAdditionalProperties: APIGatewayProxyHandler = async (
   event
 ) => {
-  const product = event.pathParameters.productId
+  const product = event.pathParameters?.productId
   try {
     const [data] = (await client.query({
       query: makeAdditionalPropertiesQuery(Number(product))

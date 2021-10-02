@@ -7,10 +7,12 @@ import {
 } from '@libs/bigquery'
 
 const shopify = new Shopify({
-  shopName: process.env.SHOPIFY_SHOP_NAME,
-  apiKey: process.env.SHOPIFY_API_KEY,
-  password: process.env.SHOPIFY_API_SECRET_KEY
+  shopName: process.env.SHOPIFY_SHOP_NAME ?? '',
+  apiKey: process.env.SHOPIFY_API_KEY ?? '',
+  password: process.env.SHOPIFY_API_SECRET_KEY ?? ''
 })
+
+type RecordType = Record<string, string | number | boolean>
 
 const productListQuery = (query: string, cursor: null | string) => `{
   products(first: 50, query: "${query}" after: ${
@@ -37,7 +39,7 @@ export const products = async (): Promise<void> => {
   console.log('Graphql query: ', query)
   let hasNext = true
   let cursor: null | string = null
-  let products = []
+  let products: RecordType[] = []
   while (hasNext) {
     const data = await shopify.graphql(productListQuery(query, cursor))
     hasNext = data.products.pageInfo.hasNextPage
@@ -92,7 +94,7 @@ export const variants = async (): Promise<void> => {
   console.log('Graphql query: ', query)
   let hasNext = true
   let cursor: null | string = null
-  let variants = []
+  let variants: RecordType[] = []
   while (hasNext) {
     const data = await shopify.graphql(variantListQuery(query, cursor))
     hasNext = data.productVariants.pageInfo.hasNextPage
@@ -217,8 +219,8 @@ export const ordersAndLineItems = async (): Promise<void> => {
   console.log('Graphql query: ', query)
   let hasNext = true
   let cursor: null | string = null
-  let orders = []
-  let lineItems = []
+  let orders: RecordType[] = []
+  let lineItems: RecordType[] = []
 
   const insert = () => {
     console.log(
