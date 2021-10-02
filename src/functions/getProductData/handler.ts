@@ -27,13 +27,16 @@ export const getVariations: APIGatewayProxyHandler = async (event) => {
     const [data] = (await client.query({
       query: makeVariationsQuery(Number(product))
     })) as unknown as VariationRecord[][]
-    const result = data.reduce((res, record) => {
-      const { variantId } = record
-      return {
-        ...res,
-        [variantId]: [...(res[variantId] ?? []), record]
-      }
-    }, {})
+    const result = data.reduce<Record<number, VariationRecord[]>>(
+      (res, record) => {
+        const { variantId } = record
+        return {
+          ...res,
+          [variantId]: [...(res[variantId] ?? []), record]
+        }
+      },
+      {}
+    )
     return {
       statusCode: 200,
       body: JSON.stringify(result),
@@ -130,13 +133,16 @@ export const getAdditionalProperties: APIGatewayProxyHandler = async (
     const [data] = (await client.query({
       query: makeAdditionalPropertiesQuery(Number(product))
     })) as unknown as AdditionalPropertiesRecord[][]
-    const result = data.reduce((res, record) => {
-      const { variantId } = record
-      return {
-        ...res,
-        [variantId]: [...(res[variantId] ?? []), record]
-      }
-    }, {})
+    const result = data.reduce<Record<number, AdditionalPropertiesRecord[]>>(
+      (res, record) => {
+        const { variantId } = record
+        return {
+          ...res,
+          [variantId]: [...(res[variantId] ?? []), record]
+        }
+      },
+      {}
+    )
     return {
       statusCode: 200,
       body: JSON.stringify(result),

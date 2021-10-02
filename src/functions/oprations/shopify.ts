@@ -106,8 +106,8 @@ export const ordersAndLineItems = async (): Promise<void> => {
         cursor = c
         if (node.cancelled_at) return res
         const records = node.lineItems.edges
-          .map(({ node: lineItem }) =>
-            makeOperations(lineItem, node.id, dayjs()) // TODO: dayjs() => referenceDate
+          .map(
+            ({ node: lineItem }) => makeOperations(lineItem, node.id, dayjs()) // TODO: dayjs() => referenceDate
           )
           .filter((record): record is OperationRecord[] => Boolean(record))
         return [...res, ...records.flat()]

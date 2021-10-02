@@ -37,7 +37,7 @@ export const insertRecords = (
   table: string,
   dataset: string,
   columns: string[],
-  data: Record<string, string | number | boolean>[]
+  data: Record<string, string | number | boolean | null>[]
 ): Promise<SimpleQueryRowsResponse> =>
   client.query({ query: makeInsertQuery(table, dataset, columns, data) })
 
@@ -45,7 +45,7 @@ const makeInsertQuery = (
   table: string,
   dataset: string,
   columns: string[],
-  data: Record<string, string | number | boolean>[]
+  data: Record<string, string | number | boolean | null>[]
 ) => {
   return sql.format(
     `

@@ -12,7 +12,20 @@ const shopify = new Shopify({
   password: process.env.SHOPIFY_API_SECRET_KEY ?? ''
 })
 
-type RecordType = Record<string, string | number | boolean>
+type RecordType = Record<string, string | number | boolean | null>
+
+type EdgesNode<T> = {
+  edges: {
+    node: T
+    cursor: string
+  }[]
+}
+
+type WithPageInfo<T> = T & {
+  pageInfo: {
+    hasNextPage: boolean
+  }
+}
 
 const productListQuery = (query: string, cursor: null | string) => `{
   products(first: 50, query: "${query}" after: ${
@@ -34,6 +47,14 @@ const productListQuery = (query: string, cursor: null | string) => `{
   }
 }`
 
+type ProductNode = {
+  id: string
+  title: string
+  status: string
+  created_at: string
+  updated_at: string
+}
+
 export const products = async (): Promise<void> => {
   const query = `updated_at:>'${await getLatestUpdatedAt('products')}'`
   console.log('Graphql query: ', query)
@@ -41,7 +62,8 @@ export const products = async (): Promise<void> => {
   let cursor: null | string = null
   let products: RecordType[] = []
   while (hasNext) {
-    const data = await shopify.graphql(productListQuery(query, cursor))
+    const data: { products: WithPageInfo<EdgesNode<ProductNode>> } =
+      await shopify.graphql(productListQuery(query, cursor))
     hasNext = data.products.pageInfo.hasNextPage
 
     products = data.products.edges.reduce((res, { node, cursor: c }) => {
@@ -89,30 +111,62 @@ const variantListQuery = (query: string, cursor: null | string) => `{
   }
 }`
 
+type VariantListNode = {
+  id: string
+  title: string
+  display_name: string
+  price: string
+  compareAtPrice: string
+  taxable: boolean
+  available_for_sale: boolean
+  product: {
+    id: string
+  }
+  created_at: string
+  updated_at: string
+}
+
+type VariantRecord = {
+  id: string
+  title: string
+  display_name: string
+  price: number
+  compare_at_price: number | null
+  taxable: boolean
+  available_for_sale: boolean
+  product_id: string
+  created_at: string
+  updated_at: string
+}
+
 export const variants = async (): Promise<void> => {
   const query = `updated_at:>'${await getLatestUpdatedAt('variants')}'`
   console.log('Graphql query: ', query)
   let hasNext = true
   let cursor: null | string = null
-  let variants: RecordType[] = []
+  let variants: VariantRecord[] = []
   while (hasNext) {
-    const data = await shopify.graphql(variantListQuery(query, cursor))
+    const data: { productVariants: WithPageInfo<EdgesNode<VariantListNode>> } =
+      await shopify.graphql(variantListQuery(query, cursor))
     hasNext = data.productVariants.pageInfo.hasNextPage
 
-    variants = data.productVariants.edges.reduce((res, { node, cursor: c }) => {
-      cursor = c
-      return [
-        ...res,
-        {
-          ...node,
-          product_id: node.product.id,
-          price: Number(node.price),
-          compare_at_price: node.compareAtPrice
-            ? Number(node.compareAtPrice)
-            : null
-        }
-      ]
-    }, variants)
+    variants = data.productVariants.edges.reduce<VariantRecord[]>(
+      (res, { node, cursor: c }) => {
+        cursor = c
+        return [
+          ...res,
+          {
+            ...node,
+            product_id: node.product.id,
+            price: Number(node.price),
+            compare_at_price: node.compareAtPrice
+              ? Number(node.compareAtPrice)
+              : null
+          }
+        ]
+      },
+      variants
+    )
     if (hasNext) await sleep(1000)
   }
 
@@ -214,13 +268,87 @@ const orderListQuery = (query: string, cursor: null | string) => `{
   }
 }`
 
+type ShopMoney = {
+  shopMoney: {
+    amount: number
+  }
+}
+
+type LineItemNode = {
+  id: string
+  name: string
+  quantity: number
+  originalTotalSet: ShopMoney
+  variant: {
+    id: string
+  }
+  product: {
+    id: string
+  }
+}
+
+type LineItemRecord = Omit<
+  LineItemNode,
+  'originalTotalSet' | 'variant' | 'product'
+> & {
+  order_id: string
+  product_id: string
+  variant_id: string | null
+  original_total_price: number
+}
+
+type OrderNode = {
+  id: string
+  lineItems: EdgesNode<LineItemNode>
+  customerJourneySummary?: {
+    firstVisit?: {
+      landingPage?: string
+      referrerUrl?: string
+      source?: string
+      sourceType?: string
+      utmParameters?: {
+        source?: string
+        medium?: string
+        campaign?: string
+        content?: string
+        term?: string
+      }
+    }
+  }
+  totalPriceSet: ShopMoney
+  subtotalPriceSet: ShopMoney
+  totalTaxSet: ShopMoney
+}
+
+type OrderRecord = Omit<
+  OrderNode,
+  | 'lineItems'
+  | 'customerJourneySummary'
+  | 'totalPriceSet'
+  | 'subtotalPriceSet'
+  | 'totalTaxSet'
+> & {
+  total_price: number
+  subtotal_price: number
+  total_tax: number
+  landing_page: string | null
+  referrer_url: string | null
+  source: string | null
+  source_type: string | null
+  utm_source: string | null
+  utm_medium: string | null
+  utm_campaign: string | null
+  utm_content: string | null
+  utm_term: string | null
+}
+
 export const ordersAndLineItems = async (): Promise<void> => {
   const query = `updated_at:>'${await getLatestUpdatedAt('orders')}'`
   console.log('Graphql query: ', query)
   let hasNext = true
   let cursor: null | string = null
-  let orders: RecordType[] = []
-  let lineItems: RecordType[] = []
+  let orders: OrderRecord[] = []
+  let lineItems: LineItemRecord[] = []
 
   const insert = () => {
     console.log(
@@ -278,7 +406,8 @@ export const ordersAndLineItems = async (): Promise<void> => {
   }
 
   while (hasNext) {
-    const data = await shopify.graphql(orderListQuery(query, cursor))
+    const data: { orders: WithPageInfo<EdgesNode<OrderNode>> } =
+      await shopify.graphql(orderListQuery(query, cursor))
     hasNext = data.orders.pageInfo.hasNextPage
 
     orders = data.orders.edges.reduce((res, { node, cursor: c }) => {
