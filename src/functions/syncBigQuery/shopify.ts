@@ -241,6 +241,10 @@ const orderListQuery = (query: string, cursor: null | string) => `{
               product {
                 id
               }
+              customAttributes {
+                key
+                value
+              }
             }
           }
         }
@@ -285,16 +289,22 @@ type LineItemNode = {
   product: {
     id: string
   }
+  customAttributes: {
+    key: string
+    value: string
+  }[]
 }
 
 type LineItemRecord = Omit<
   LineItemNode,
-  'originalTotalSet' | 'variant' | 'product'
+  'originalTotalSet' | 'variant' | 'product' | 'customAttributes'
 > & {
   order_id: string
   product_id: string
   variant_id: string | null
   original_total_price: number
+  delivery_schedule: string | null
+  sku_quantity: string | null
 }
 
 type OrderNode = {
@@ -398,7 +408,9 @@ export const ordersAndLineItems = async (): Promise<void> => {
           'variant_id',
           'product_id',
           'quantity',
-          'original_total_price'
+          'original_total_price',
+          'delivery_schedule',
+          'sku_quantity'
         ],
         lineItems
       )
@@ -406,51 +418,66 @@ export const ordersAndLineItems = async (): Promise<void> => {
   }
 
   while (hasNext) {
-    const data: { orders: WithPageInfo<EdgesNode<OrderNode>> } =
-      await shopify.graphql(orderListQuery(query, cursor))
-    hasNext = data.orders.pageInfo.hasNextPage
+    try {
+      const data: { orders: WithPageInfo<EdgesNode<OrderNode>> } =
+        await shopify.graphql(orderListQuery(query, cursor))
 
-    orders = data.orders.edges.reduce((res, { node, cursor: c }) => {
-      cursor = c
-      lineItems = [
-        ...lineItems,
-        ...node.lineItems.edges.map(({ node: item }) => ({
-          ...item,
-          order_id: node.id,
-          product_id: item.product.id,
-          variant_id: item.variant?.id ?? null,
-          original_total_price: Number(item.originalTotalSet.shopMoney.amount)
-        }))
-      ]
-      const visit = node.customerJourneySummary?.firstVisit
-      const utmSource = decode(visit?.utmParameters?.source)
-      return [
-        ...res,
-        {
-          ...node,
-          total_price: Number(node.totalPriceSet.shopMoney.amount),
-          subtotal_price: Number(node.subtotalPriceSet.shopMoney.amount),
-          total_tax: Number(node.totalTaxSet.shopMoney.amount),
-          landing_page: visit?.landingPage ?? null,
-          referrer_url: visit?.referrerUrl ?? null,
-          source:
-            (visit?.source === 'an unknown source'
-              ? utmSource
-              : visit?.source) ?? null,
-          source_type: visit?.sourceType ?? null,
-          utm_source: utmSource ?? null,
-          utm_medium: decode(visit?.utmParameters?.medium) ?? null,
-          utm_campaign: decode(visit?.utmParameters?.campaign) ?? null,
-          utm_content: decode(visit?.utmParameters?.content) ?? null,
-          utm_term: decode(visit?.utmParameters?.term) ?? null
-        }
-      ]
-    }, orders)
-    if (hasNext) await sleep(1000)
-    if (orders.length > 99) {
-      await insert()
-      orders = []
-      lineItems = []
+      hasNext = data.orders.pageInfo.hasNextPage
+
+      orders = data.orders.edges.reduce((res, { node, cursor: c }) => {
+        cursor = c
+        lineItems = [
+          ...lineItems,
+          ...node.lineItems.edges.map(({ node: item }) => {
+            const [schedule, skuQuantity] = convertCustomAttributes(
+              item.customAttributes
+            )
+            return {
+              ...item,
+              order_id: node.id,
+              product_id: item.product.id,
+              variant_id: item.variant?.id ?? null,
+              original_total_price: Number(
+                item.originalTotalSet.shopMoney.amount
+              ),
+              delivery_schedule: schedule,
+              sku_quantity: skuQuantity
+            }
+          })
+        ]
+        const visit = node.customerJourneySummary?.firstVisit
+        const utmSource = decode(visit?.utmParameters?.source)
+        return [
+          ...res,
+          {
+            ...node,
+            total_price: Number(node.totalPriceSet.shopMoney.amount),
+            subtotal_price: Number(node.subtotalPriceSet.shopMoney.amount),
+            total_tax: Number(node.totalTaxSet.shopMoney.amount),
+            landing_page: visit?.landingPage ?? null,
+            referrer_url: visit?.referrerUrl ?? null,
+            source:
+              (visit?.source === 'an unknown source'
+                ? utmSource
+                : visit?.source) ?? null,
+            source_type: visit?.sourceType ?? null,
+            utm_source: utmSource ?? null,
+            utm_medium: decode(visit?.utmParameters?.medium) ?? null,
+            utm_campaign: decode(visit?.utmParameters?.campaign) ?? null,
+            utm_content: decode(visit?.utmParameters?.content) ?? null,
+            utm_term: decode(visit?.utmParameters?.term) ?? null
+          }
+        ]
+      }, orders)
+      if (hasNext) await sleep(3000)
+      if (orders.length > 99) {
+        await insert()
+        orders = []
+        lineItems = []
+      }
+    } catch (e) {
+      console.log(e)
+      throw e
     }
   }
 
@@ -474,4 +501,67 @@ const decode = (src: string | null | undefined): string | null | undefined => {
   } catch (_) {
     return src
   }
+}
+
+const convertCustomAttributes = (
+  ca: { key: string; value: string }[]
+): [string | null, string] => {
+  let schedule = null
+  let skuQuantities: { sku: string; quantity: number }[] = []
+  let newStyle = false
+  ca.forEach(({ key, value }) => {
+    if ('delivery_schedule' === key) {
+      newStyle = true
+      schedule = value
+    }
+    if ('sku_quantity' === key) {
+      newStyle = true
+      skuQuantities = JSON.parse(value)
+    }
+
+    // old style
+    if (!newStyle && /カラー×サイズ/.test(key))
+      skuQuantities.push({ sku: convertSKU(value), quantity: 1 })
+    if (!newStyle && '配送予定' === key) schedule = convertSchedule(value)
+  })
+  if (skuQuantities.length < 1)
+    skuQuantities.push({ sku: 'default', quantity: 1 })
+
+  return [schedule, JSON.stringify(skuQuantities)]
+}
+
+const convertSKU = (value: string): string => {
+  let color = ''
+  let size = ''
+  if (value.includes('グレー')) color = 'gray'
+  else if (value.includes('ブラック')) color = 'black'
+  else if (value.includes('レッド')) color = 'red'
+  else if (value.includes('グリーン')) color = 'green'
+
+  if (value.includes('XS')) size = 'xs'
+  else if (value.includes('S')) size = 's'
+  else if (value.includes('M')) size = 'm'
+  else if (value.includes('XL')) size = 'xl'
+  else if (value.includes('L')) size = 'l'
+
+  if (color && size) return `color_${color}_size_${size}`
+
+  throw new Error(`parse error: ${value}`)
+}
+
+const convertSchedule = (value: string): string | null => {
+  if (/営業日以内/.test(value)) return null
+  const [, month, day] = value.match(/\(\d+\/\d+～(\d+)\/(\d+)\)/) ?? []
+  if (!month || !day) throw new Error(`parse error: ${value}`)
+  const term =
+    day === '10'
+      ? 'ealy'
+      : day === '20'
+      ? 'middle'
+      : ['31', '30'].includes(day)
+      ? 'late'
+      : null
+  if (term === null) throw new Error(`parse error: ${value}`)
+
+  return `2021-${month}-${term}`
 }
