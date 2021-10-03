@@ -57,7 +57,7 @@ export const ordersAndLineItems = async (): Promise<void> => {
         ...lineItem,
         id: lineItem.line_item_id,
         sku,
-        quantity,
+        quantity: quantity * lineItem.quantity,
         operated_at: dayjs().toISOString(),
         delivery_date: scheduleData.format('YYYY-MM-DD')
       }))
@@ -73,7 +73,6 @@ export const ordersAndLineItems = async (): Promise<void> => {
         )
         .reduce<Record<string, { quantity: number; orders: string[] }>>(
           (res, lineItem) => {
-            console.log(lineItem.quantity, res[lineItem.sku]?.quantity)
             return {
               ...res,
               [lineItem.sku]: {
@@ -158,6 +157,7 @@ SELECT
   li.sku_quantity,
   li.variant_id,
   li.product_id,
+  li.quantity,
   o.created_at AS ordered_at
 FROM shopify.line_items li
 LEFT JOIN shopify.operated_line_items oli
@@ -177,6 +177,7 @@ type NotOperatedLineItemQueryRecord = {
   variant_id: string | null
   product_id: string
   ordered_at: { value: string }
+  quantity: number
 }
 
 type OperatedLineItemRecord = {

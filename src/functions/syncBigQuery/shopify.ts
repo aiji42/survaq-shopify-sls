@@ -237,6 +237,7 @@ const orderListQuery = (query: string, cursor: null | string) => `{
               }
               variant {
                 id
+                title
               }
               product {
                 id
@@ -285,6 +286,7 @@ type LineItemNode = {
   originalTotalSet: ShopMoney
   variant: {
     id: string
+    title: string
   }
   product: {
     id: string
@@ -430,7 +432,8 @@ export const ordersAndLineItems = async (): Promise<void> => {
           ...lineItems,
           ...node.lineItems.edges.map(({ node: item }) => {
             const [schedule, skuQuantity] = convertCustomAttributes(
-              item.customAttributes
+              item.customAttributes,
+              item.variant.title
             )
             return {
               ...item,
@@ -504,7 +507,8 @@ const decode = (src: string | null | undefined): string | null | undefined => {
 }
 
 const convertCustomAttributes = (
-  ca: { key: string; value: string }[]
+  ca: { key: string; value: string }[],
+  valiantName: string
 ): [string | null, string] => {
   let schedule = null
   let skuQuantities: { sku: string; quantity: number }[] = []
@@ -524,8 +528,10 @@ const convertCustomAttributes = (
       skuQuantities.push({ sku: convertSKU(value), quantity: 1 })
     if (!newStyle && '配送予定' === key) schedule = convertSchedule(value)
   })
-  if (skuQuantities.length < 1)
-    skuQuantities.push({ sku: 'default', quantity: 1 })
+  if (skuQuantities.length < 1) {
+    const [quantity] = valiantName.match(/^\d+/) ?? ['1']
+    skuQuantities.push({ sku: 'default', quantity: Number(quantity) })
+  }
 
   return [schedule, JSON.stringify(skuQuantities)]
 }
