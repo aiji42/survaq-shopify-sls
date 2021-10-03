@@ -28,3 +28,5 @@ jobs:
           FACEBOOK_GRAPH_API_TOKEN: ${{ secrets.FACEBOOK_GRAPH_API_TOKEN }}
           FACEBOOK_BUSINESS_ACCOUNT_ID: ${{ secrets.FACEBOOK_BUSINESS_ACCOUNT_ID }}
           MICROCMS_API_TOKEN: ${{ secrets.MICROCMS_API_TOKEN }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_API_USER: ${{ secrets.JIRA_API_USER }}
