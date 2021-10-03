@@ -6,14 +6,10 @@ import * as timezone from 'dayjs/plugin/timezone'
 import * as utc from 'dayjs/plugin/utc'
 import * as sql from 'sqlstring'
 import { client as bigQueryClient } from '@libs/bigquery'
+import { cmsClient } from '@libs/microCms'
 dayjs.extend(utc)
 dayjs.extend(timezone)
 dayjs.tz.setDefault('Asia/Tokyo')
-
-const cmsClient = createClient({
-  serviceDomain: 'survaq-shopify',
-  apiKey: process.env.MICROCMS_API_TOKEN ?? ''
-})
 
 const corsHeader = {
   'Access-Control-Allow-Origin': '*'

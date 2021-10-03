@@ -1,175 +1,130 @@
-import { sleep } from '@libs/sleep'
-import * as Shopify from 'shopify-api-node'
 import * as dayjs from 'dayjs'
+import * as sql from 'sqlstring'
+import { client as bigQueryClient, insertRecords } from '@libs/bigquery'
+import { cmsClient } from '@libs/microCms'
+import { Product } from '@functions/getProductData/v2/product'
 
 type Dayjs = dayjs.Dayjs
 
-const shopify = new Shopify({
-  shopName: process.env.SHOPIFY_SHOP_NAME ?? '',
-  apiKey: process.env.SHOPIFY_API_KEY ?? '',
-  password: process.env.SHOPIFY_API_SECRET_KEY ?? ''
-})
-
-type CustomAttributes = {
-  key: string
-  value: string
-}[]
-
-type LineItem = {
-  id: string
-  quantity: number
-  variant: { id: string }
-  product: { id: string }
-  customAttributes: CustomAttributes
-}
-
-const lineItemsQuery = (query: string, cursor: null | string) => `{
-  orders(first: 10, query: "${query}" after: ${
-  cursor ? `"${cursor}"` : 'null'
-}) {
-    edges {
-      node {
-        id
-        cancelled_at: cancelledAt
-        lineItems(first: 10) {
-          edges {
-            node {
-              id
-              quantity
-              variant {
-                id
-              }
-              product {
-                id
-              }
-              customAttributes {
-                key
-                value
-              }
-            }
-          }
-        }
-      }
-      cursor
-    }
-    pageInfo {
-      hasNextPage
-    }
-  }
-}`
-
-type LineItemGraphqlResponse = {
-  orders: {
-    edges: {
-      node: {
-        id: string
-        cancelled_at: string | null
-        lineItems: {
-          edges: {
-            node: LineItem
-          }[]
-        }
-      }
-      cursor: string
-    }[]
-    pageInfo: {
-      hasNextPage: boolean
-    }
-  }
-}
-
 export const ordersAndLineItems = async (): Promise<void> => {
-  const query = `updated_at:>'2021-07-01' -tag:発注済`
-  console.log('Graphql query: ', query)
-  let hasNext = true
-  let cursor: null | string = null
-  let operations: OperationRecord[] = []
-
-  const insert = () => {
-    console.log('operations records:', operations.length)
-    console.log(operations)
-    return Promise.all([
-      // TODO insert record
-      // TODO update shopify order tag
-      // TODO create jira story
-    ])
-  }
-
-  while (hasNext) {
-    const data: LineItemGraphqlResponse = await shopify.graphql(
-      lineItemsQuery(query, cursor)
+  const [bqRes]: [NotOperatedLineItemQueryRecord[], unknown] =
+    await bigQueryClient.query({
+      query: makeNotOperatedLineItemQuery()
+    })
+  const productIds = [...new Set(bqRes.map(({ product_id }) => product_id))]
+  const cmsRes = await Promise.all(
+    productIds.map((id) =>
+      cmsClient.get<Product>({
+        endpoint: 'products',
+        contentId: id
+      })
     )
-    hasNext = data.orders.pageInfo.hasNextPage
-
-    const ops = data.orders.edges.reduce<OperationRecord[]>(
-      (res, { node, cursor: c }) => {
-        cursor = c
-        if (node.cancelled_at) return res
-        const records = node.lineItems.edges
-          .map(
-            ({ node: lineItem }) => makeOperations(lineItem, node.id, dayjs()) // TODO: dayjs() => referenceDate
-          )
-          .filter((record): record is OperationRecord[] => Boolean(record))
-        return [...res, ...records.flat()]
-      },
-      []
-    )
-    operations = [...operations, ...ops]
-    if (hasNext) await sleep(1000)
-    if (operations.length > 20) {
-      // FIXME: 99
-      await insert()
-      operations = []
-    }
-  }
-
-  console.log('operations records:', operations.length)
-  console.log(operations)
-  if (operations.length > 0) await insert()
-}
-
-type OperationRecord = {
-  order_id: string
-  product_id: string
-  valiant_id: string
-  line_item_id: string
-  sku: string
-  quantity: number
-  operated_at: string
-  delivery_schedule_date: string
-}
-
-const makeOperations = (
-  lineItem: LineItem,
-  orderId: string,
-  referenceDate: Dayjs
-): OperationRecord[] | null => {
-  console.log(lineItem)
-  const keyValues = lineItem.customAttributes.reduce<Record<string, string>>(
-    (res, { key, value }) => ({ ...res, [key]: value }),
+  )
+  const products = cmsRes.reduce<Record<string, Product>>(
+    (res, product) => ({
+      ...res,
+      [product.id]: product
+    }),
     {}
   )
-  if (!keyValues['delivery-schedule'] || !keyValues['sku-quantity']) return null
-  if (parseSchedule(keyValues['delivery-schedule']) > referenceDate) return null
-  const skuQuantities: { sku: string; quantity: number }[] = JSON.parse(
-    keyValues['sku-quantity']
+
+  const operatedLineItems = bqRes
+    .map((lineItem) => {
+      const product = products[lineItem.product_id]
+      if (!product)
+        throw new Error(
+          `Not exist or not fetchable product data: ${lineItem.product_id}`
+        )
+      // TODO: product and ordered_at -> calc schedule
+      const scheduleData = lineItem.delivery_schedule
+        ? parseSchedule(lineItem.delivery_schedule)
+        : dayjs()
+      if (scheduleData > dayjs().add(product.rule.leadDays, 'day')) return null
+
+      const skus: { sku: string; quantity: number }[] = JSON.parse(
+        lineItem.sku_quantity ?? '[]'
+      ) // TODO: variant -> calc sku
+      const variant = product.variants.find(
+        ({ variantId }) => variantId === lineItem.variant_id
+      )
+      if (!variant)
+        throw new Error(
+          `Not exist or not fetchable variant data: ${lineItem.variant_id} (product: ${product.id})`
+        )
+      return skus.map<OperatedLineItemRecord>(({ sku, quantity }) => ({
+        ...lineItem,
+        id: lineItem.line_item_id,
+        sku,
+        quantity: quantity * variant.itemCount,
+        operated_at: dayjs().toISOString(),
+        delivery_date: scheduleData.format('YYYY-MM-DD')
+      }))
+    })
+    .flat()
+    .filter((i): i is OperatedLineItemRecord => Boolean(i))
+
+  // TODO create jira story
+  console.log(`operated_line_item records: ${operatedLineItems.length}`)
+  await insertRecords(
+    'operated_line_items',
+    'shopify',
+    [
+      'id',
+      'operated_at',
+      'delivery_date',
+      'sku',
+      'quantity',
+      'order_id',
+      'product_id',
+      'variant_id'
+    ],
+    operatedLineItems
   )
-  return skuQuantities.map(({ sku, quantity }) => ({
-    order_id: orderId,
-    product_id: lineItem.product.id,
-    valiant_id: lineItem.variant.id,
-    line_item_id: lineItem.id,
-    sku,
-    quantity: quantity * lineItem.quantity,
-    operated_at: dayjs().toISOString(),
-    delivery_schedule_date: parseSchedule(keyValues['delivery-schedule'])
-      .toISOString()
-      .slice(0, 10)
-  }))
 }
 
 const parseSchedule = (value: string): Dayjs => {
   const [year, month, term] = value.split('-')
   const date = term === 'late' ? 28 : term === 'middle' ? 18 : 8
   return dayjs(`${year}-${month}-${date}`)
+}
+
+const makeNotOperatedLineItemQuery = (): string => {
+  return sql.format(`
+SELECT
+  li.order_id
+  li.id AS line_item_id
+  li.delivery_schedule,
+  li.sku_quantity,
+  li.variant_id,
+  li.product_id,
+  o.created_at AS ordered_at
+FROM shopify.line_items li
+LEFT JOIN shopify.operated_line_items oli
+  ON oli.id = li.id
+LEFT JOIN shopify.orders o
+  ON li.order_id = o.id
+WHERE oli.id IS NULL
+  AND o.cancelled_at IS NULL
+`)
+}
+
+type NotOperatedLineItemQueryRecord = {
+  order_id: string
+  line_item_id: string
+  delivery_schedule: string | null
+  sku_quantity: string | null
+  variant_id: string | null
+  product_id: string
+  ordered_at: { value: string }
+}
+
+type OperatedLineItemRecord = {
+  id: string
+  operated_at: string
+  delivery_date: string
+  sku: string
+  quantity: number
+  order_id: string
+  product_id: string
+  variant_id: string | null
 }
