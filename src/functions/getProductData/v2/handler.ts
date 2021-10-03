@@ -1,5 +1,4 @@
 import { APIGatewayProxyHandler } from 'aws-lambda'
-import { createClient } from 'microcms-js-sdk'
 import { Product, Rule } from '@functions/getProductData/v2/product'
 import * as dayjs from 'dayjs'
 import * as timezone from 'dayjs/plugin/timezone'

@@ -3,6 +3,7 @@ import * as sql from 'sqlstring'
 import { client as bigQueryClient, insertRecords } from '@libs/bigquery'
 import { cmsClient } from '@libs/microCms'
 import { Product } from '@functions/getProductData/v2/product'
+import { createIssue } from '@libs/jira'
 
 type Dayjs = dayjs.Dayjs
 
@@ -13,12 +14,12 @@ export const ordersAndLineItems = async (): Promise<void> => {
     })
   const productIds = [...new Set(bqRes.map(({ product_id }) => product_id))]
   const cmsRes = await Promise.all(
-    productIds.map((id) =>
-      cmsClient.get<Product>({
+    productIds.map((id) => {
+      return cmsClient.get<Product>({
         endpoint: 'products',
-        contentId: id
+        contentId: productIdStripPrefix(id)
       })
-    )
+    })
   )
   const products = cmsRes.reduce<Record<string, Product>>(
     (res, product) => ({
@@ -30,7 +31,7 @@ export const ordersAndLineItems = async (): Promise<void> => {
 
   const operatedLineItems = bqRes
     .map((lineItem) => {
-      const product = products[lineItem.product_id]
+      const product = products[productIdStripPrefix(lineItem.product_id)]
       if (!product)
         throw new Error(
           `Not exist or not fetchable product data: ${lineItem.product_id}`
@@ -45,7 +46,8 @@ export const ordersAndLineItems = async (): Promise<void> => {
         lineItem.sku_quantity ?? '[]'
       ) // TODO: variant -> calc sku
       const variant = product.variants.find(
-        ({ variantId }) => variantId === lineItem.variant_id
+        ({ variantId }) =>
+          variantId === variantIdStripPrefix(lineItem.variant_id ?? '')
       )
       if (!variant)
         throw new Error(
@@ -55,7 +57,7 @@ export const ordersAndLineItems = async (): Promise<void> => {
         ...lineItem,
         id: lineItem.line_item_id,
         sku,
-        quantity: quantity * variant.itemCount,
+        quantity,
         operated_at: dayjs().toISOString(),
         delivery_date: scheduleData.format('YYYY-MM-DD')
       }))
@@ -63,7 +65,57 @@ export const ordersAndLineItems = async (): Promise<void> => {
     .flat()
     .filter((i): i is OperatedLineItemRecord => Boolean(i))
 
-  // TODO create jira story
+  await Promise.all(
+    Object.values(products).map((product) => {
+      const skuOrders = operatedLineItems
+        .filter(
+          ({ product_id }) => productIdStripPrefix(product_id) === product.id
+        )
+        .reduce<Record<string, { quantity: number; orders: string[] }>>(
+          (res, lineItem) => {
+            console.log(lineItem.quantity, res[lineItem.sku]?.quantity)
+            return {
+              ...res,
+              [lineItem.sku]: {
+                quantity:
+                  lineItem.quantity + (res[lineItem.sku]?.quantity ?? 0),
+                orders: [
+                  ...(res[lineItem.sku]?.orders ?? []),
+                  lineItem.order_id
+                ]
+              }
+            }
+          },
+          {}
+        )
+
+      const description = Object.entries(skuOrders)
+        .map(
+          ([sku, { quantity, orders }]) =>
+            `* ${sku} x ${quantity}\n${orders.map(
+              (order) =>
+                `** https://survaq.myshopify.com/admin/orders/${orderIdStripPrefix(
+                  order
+                )}\n`
+            )}`
+        )
+        .join('')
+
+      return createIssue({
+        fields: {
+          project: {
+            key: 'STORE'
+          },
+          issuetype: {
+            id: '10001'
+          },
+          summary: `[発注]${product.productName}`,
+          description
+        }
+      })
+    })
+  )
+
   console.log(`operated_line_item records: ${operatedLineItems.length}`)
   await insertRecords(
     'operated_line_items',
@@ -82,6 +134,15 @@ export const ordersAndLineItems = async (): Promise<void> => {
   )
 }
 
+// gid://shopify/Product/12341234 => 12341234
+const productIdStripPrefix = (id: string): string => id.slice(22)
+
+// gid://shopify/ProductVariant/12341234 => 12341234
+const variantIdStripPrefix = (id: string): string => id.slice(29)
+
+// gid://shopify/Order/12341234 => 12341234
+const orderIdStripPrefix = (id: string): string => id.slice(20)
+
 const parseSchedule = (value: string): Dayjs => {
   const [year, month, term] = value.split('-')
   const date = term === 'late' ? 28 : term === 'middle' ? 18 : 8
@@ -91,8 +152,8 @@ const parseSchedule = (value: string): Dayjs => {
 const makeNotOperatedLineItemQuery = (): string => {
   return sql.format(`
 SELECT
-  li.order_id
-  li.id AS line_item_id
+  li.order_id,
+  li.id AS line_item_id,
   li.delivery_schedule,
   li.sku_quantity,
   li.variant_id,
