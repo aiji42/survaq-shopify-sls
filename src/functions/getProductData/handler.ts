@@ -1,6 +1,12 @@
 import { APIGatewayProxyHandler } from 'aws-lambda'
 import { client } from '@libs/bigquery'
 import * as sql from 'sqlstring'
+import * as dayjs from 'dayjs'
+import * as timezone from 'dayjs/plugin/timezone'
+import * as utc from 'dayjs/plugin/utc'
+dayjs.extend(utc)
+dayjs.extend(timezone)
+dayjs.tz.setDefault('Asia/Tokyo')
 
 type VariationRecord = {
   id: number
@@ -16,18 +22,21 @@ const corsHeader = {
 }
 
 export const getVariations: APIGatewayProxyHandler = async (event) => {
-  const product = event.pathParameters.productId
+  const product = event.pathParameters?.productId
   try {
     const [data] = (await client.query({
       query: makeVariationsQuery(Number(product))
     })) as unknown as VariationRecord[][]
-    const result = data.reduce((res, record) => {
-      const { variantId } = record
-      return {
-        ...res,
-        [variantId]: [...(res[variantId] ?? []), record]
-      }
-    }, {})
+    const result = data.reduce<Record<number, VariationRecord[]>>(
+      (res, record) => {
+        const { variantId } = record
+        return {
+          ...res,
+          [variantId]: [...(res[variantId] ?? []), record]
+        }
+      },
+      {}
+    )
     return {
       statusCode: 200,
       body: JSON.stringify(result),
@@ -55,7 +64,7 @@ LIMIT 1000
   )
 
 export const getFundings: APIGatewayProxyHandler = async (event) => {
-  const product = event.pathParameters.productId
+  const product = event.pathParameters?.productId
   try {
     const [[data]] = await client.query({
       query: makeFundingsQuery(Number(product))
@@ -119,18 +128,21 @@ type AdditionalPropertiesRecord = {
 export const getAdditionalProperties: APIGatewayProxyHandler = async (
   event
 ) => {
-  const product = event.pathParameters.productId
+  const product = event.pathParameters?.productId
   try {
     const [data] = (await client.query({
       query: makeAdditionalPropertiesQuery(Number(product))
     })) as unknown as AdditionalPropertiesRecord[][]
-    const result = data.reduce((res, record) => {
-      const { variantId } = record
-      return {
-        ...res,
-        [variantId]: [...(res[variantId] ?? []), record]
-      }
-    }, {})
+    const result = data.reduce<Record<number, AdditionalPropertiesRecord[]>>(
+      (res, record) => {
+        const { variantId } = record
+        return {
+          ...res,
+          [variantId]: [...(res[variantId] ?? []), record]
+        }
+      },
+      {}
+    )
     return {
       statusCode: 200,
       body: JSON.stringify(result),

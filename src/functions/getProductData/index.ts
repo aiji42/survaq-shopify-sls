@@ -6,6 +6,8 @@ const environment = {
   MICROCMS_API_TOKEN: '${env:MICROCMS_API_TOKEN}'
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 export const getVariations: AWS['functions'][string] = {
   handler: `${handlerPath(__dirname)}/handler.getVariations`,
   events: [
@@ -34,6 +36,8 @@ export const getVariations: AWS['functions'][string] = {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 export const getFundings: AWS['functions'][string] = {
   handler: `${handlerPath(__dirname)}/handler.getFundings`,
   events: [
@@ -62,6 +66,8 @@ export const getFundings: AWS['functions'][string] = {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 export const getAdditionalProperties: AWS['functions'][string] = {
   handler: `${handlerPath(__dirname)}/handler.getAdditionalProperties`,
   events: [
@@ -90,6 +96,8 @@ export const getAdditionalProperties: AWS['functions'][string] = {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 export const getProductDataV2: AWS['functions'][string] = {
   handler: `${handlerPath(__dirname)}/v2/handler.getProductDataForClient`,
   events: [

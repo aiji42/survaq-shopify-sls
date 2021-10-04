@@ -102,9 +102,9 @@ const getAdReportRecords = async (
       (res) => res.json() as Promise<Res | AdAccount>
     )
     next =
-      'owned_ad_accounts' in res
+      ('owned_ad_accounts' in res
         ? res.owned_ad_accounts.paging.next
-        : res.paging.next
+        : res.paging.next) ?? ''
     const adAccount =
       'owned_ad_accounts' in res ? res.owned_ad_accounts.data : res.data
 
@@ -151,4 +151,5 @@ const getAdReportRecords = async (
   return records
 }
 
-const range = (start, end) => [...Array(end + 1).keys()].slice(start)
+const range = (start: number, end: number) =>
+  [...Array(end + 1).keys()].slice(start)

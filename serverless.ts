@@ -13,6 +13,8 @@ import {
   getProductDataV2
 } from '@functions/getProductData'
 
+import { operationOrdersAndLineItems } from '@functions/oprations'
+
 const serverlessConfiguration: AWS = {
   service: 'survaq-shopify-sls',
   frameworkVersion: '2',
@@ -47,7 +49,8 @@ const serverlessConfiguration: AWS = {
     getVariations,
     getFundings,
     getAdditionalProperties,
-    getProductDataV2
+    getProductDataV2,
+    operationOrdersAndLineItems
   }
 }
 
