@@ -166,6 +166,11 @@ LEFT JOIN shopify.orders o
   ON li.order_id = o.id
 WHERE oli.id IS NULL
   AND o.cancelled_at IS NULL
+  AND o.display_fulfillment_status = 'UNFULFILLED'
+  AND o.closed_at IS NULL
+  AND o.cancelled_at IS NULL
+  AND o.created_at >= '2021-09-21 00:00:00'
+  AND li.delivery_schedule IS NOT NULL
 `)
 }
 

@@ -16,11 +16,11 @@ const environment = {
 // @ts-ignore
 export const operationOrdersAndLineItems: AWS['functions'][string] = {
   handler: `${handlerPath(__dirname)}/shopify.ordersAndLineItems`,
-  events: [
-    {
-      schedule: 'cron(0 * * * ? *)'
-    }
-  ],
+  // events: [
+  //   {
+  //     schedule: 'cron(0 * * * ? *)'
+  //   }
+  // ],
   timeout: 600,
   environment: {
     ...environment
