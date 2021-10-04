@@ -67,36 +67,43 @@ export const ordersAndLineItems = async (): Promise<void> => {
 
   await Promise.all(
     Object.values(products).map((product) => {
-      const skuOrders = operatedLineItems
-        .filter(
-          ({ product_id }) => productIdStripPrefix(product_id) === product.id
-        )
-        .reduce<Record<string, { quantity: number; orders: string[] }>>(
-          (res, lineItem) => {
-            return {
-              ...res,
-              [lineItem.sku]: {
-                quantity:
-                  lineItem.quantity + (res[lineItem.sku]?.quantity ?? 0),
-                orders: [
-                  ...(res[lineItem.sku]?.orders ?? []),
-                  lineItem.order_id
-                ]
-              }
-            }
-          },
-          {}
-        )
+      const filteredOperatedLineItems = operatedLineItems.filter(
+        ({ product_id }) => productIdStripPrefix(product_id) === product.id
+      )
+      if (filteredOperatedLineItems.length < 1) return
 
-      const description = Object.entries(skuOrders)
+      const skuOrders = filteredOperatedLineItems.reduce<
+        Record<string, { quantity: number; orders: OperatedLineItemRecord[] }>
+      >((res, lineItem) => {
+        return {
+          ...res,
+          [lineItem.sku]: {
+            quantity: lineItem.quantity + (res[lineItem.sku]?.quantity ?? 0),
+            orders: [...(res[lineItem.sku]?.orders ?? []), lineItem]
+          }
+        }
+      }, {})
+
+      const total = filteredOperatedLineItems.reduce(
+        (res, { quantity }) => quantity + res,
+        0
+      )
+      let description = `*商品*: ${product.productName}\n`
+      description += `*合計発注数*: ${total}\n`
+      description += `リード日数: ${product.rule.leadDays}日\n`
+      description += `一括発注数: ${product.rule.bulkPurchase}\n`
+
+      description += Object.entries(skuOrders)
         .map(
           ([sku, { quantity, orders }]) =>
-            `* ${sku} x ${quantity}\n${orders.map(
-              (order) =>
-                `** https://survaq.myshopify.com/admin/orders/${orderIdStripPrefix(
-                  order
-                )}\n`
-            )}`
+            `* SKU: ${sku} ${quantity}個\n${orders
+              .map(
+                (order) =>
+                  `** https://survaq.myshopify.com/admin/orders/${orderIdStripPrefix(
+                    order.order_id
+                  )} ${order.quantity}個 配送:${order.delivery_date}\n`
+              )
+              .join('')}`
         )
         .join('')
 
@@ -108,7 +115,9 @@ export const ordersAndLineItems = async (): Promise<void> => {
           issuetype: {
             id: '10001'
           },
-          summary: `[発注]${product.productName}`,
+          summary: `[発注][${dayjs().format('YYYY-MM-DD')}]${
+            product.productName
+          }`,
           description
         }
       })
@@ -116,6 +125,7 @@ export const ordersAndLineItems = async (): Promise<void> => {
   )
 
   console.log(`operated_line_item records: ${operatedLineItems.length}`)
+  if (operatedLineItems.length < 1) return
   await insertRecords(
     'operated_line_items',
     'shopify',
