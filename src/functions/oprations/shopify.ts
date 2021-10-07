@@ -4,6 +4,11 @@ import { client as bigQueryClient, insertRecords } from '@libs/bigquery'
 import { cmsClient } from '@libs/microCms'
 import { Product } from '@functions/getProductData/v2/product'
 import { createIssue } from '@libs/jira'
+import {
+  orderIdStripPrefix,
+  productIdStripPrefix,
+  variantIdStripPrefix
+} from '@libs/shopify'
 
 type Dayjs = dayjs.Dayjs
 
@@ -21,6 +26,12 @@ export const ordersAndLineItems = async (): Promise<void> => {
       })
     })
   )
+  const { contents: cmsSKUs } = await cmsClient.get<{
+    contents: Product['variants'][number]['skus']
+  }>({
+    endpoint: 'skus',
+    queries: { limit: 100 }
+  })
   const products = cmsRes.reduce<Record<string, Product>>(
     (res, product) => ({
       ...res,
@@ -94,17 +105,20 @@ export const ordersAndLineItems = async (): Promise<void> => {
       description += `一括発注数: ${product.rule.bulkPurchase}\n`
 
       description += Object.entries(skuOrders)
-        .map(
-          ([sku, { quantity, orders }]) =>
-            `* SKU: ${sku} ${quantity}個\n${orders
-              .map(
-                (order) =>
-                  `** https://survaq.myshopify.com/admin/orders/${orderIdStripPrefix(
-                    order.order_id
-                  )} ${order.quantity}個 配送:${order.delivery_date}\n`
-              )
-              .join('')}`
-        )
+        .map(([skuCode, { quantity, orders }]) => {
+          const sku = cmsSKUs.find(({ code }) => code === skuCode)
+
+          return `* SKU: ${sku?.subName ?? '-'} ${
+            sku?.name ?? '-'
+          } (${skuCode}) ${quantity}個\n${orders
+            .map(
+              (order) =>
+                `** https://survaq.myshopify.com/admin/orders/${orderIdStripPrefix(
+                  order.order_id
+                )} ${order.quantity}個 配送:${order.delivery_date}\n`
+            )
+            .join('')}`
+        })
         .join('')
 
       return createIssue({
@@ -142,15 +156,6 @@ export const ordersAndLineItems = async (): Promise<void> => {
     operatedLineItems
   )
 }
-
-// gid://shopify/Product/12341234 => 12341234
-const productIdStripPrefix = (id: string): string => id.slice(22)
-
-// gid://shopify/ProductVariant/12341234 => 12341234
-const variantIdStripPrefix = (id: string): string => id.slice(29)
-
-// gid://shopify/Order/12341234 => 12341234
-const orderIdStripPrefix = (id: string): string => id.slice(20)
 
 const parseSchedule = (value: string): Dayjs => {
   const [year, month, term] = value.split('-')
