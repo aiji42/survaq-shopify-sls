@@ -306,7 +306,7 @@ type LineItemRecord = Omit<
   variant_id: string | null
   original_total_price: number
   delivery_schedule: string | null
-  sku_quantity: string | null
+  skus: string | null
 }
 
 type OrderNode = {
@@ -419,7 +419,7 @@ export const ordersAndLineItems = async (): Promise<void> => {
           'quantity',
           'original_total_price',
           'delivery_schedule',
-          'sku_quantity'
+          'skus'
         ],
         lineItems
       )
@@ -438,10 +438,7 @@ export const ordersAndLineItems = async (): Promise<void> => {
         lineItems = [
           ...lineItems,
           ...node.lineItems.edges.map(({ node: item }) => {
-            const [schedule, skuQuantity] = convertCustomAttributes(
-              item,
-              cmsProducts
-            )
+            const [schedule, skus] = convertCustomAttributes(item, cmsProducts)
             return {
               ...item,
               order_id: node.id,
@@ -451,7 +448,7 @@ export const ordersAndLineItems = async (): Promise<void> => {
                 item.originalTotalSet.shopMoney.amount
               ),
               delivery_schedule: schedule,
-              sku_quantity: skuQuantity
+              skus
             }
           })
         ]
@@ -479,7 +476,7 @@ export const ordersAndLineItems = async (): Promise<void> => {
           }
         ]
       }, orders)
-      if (hasNext) await sleep(3000)
+      if (hasNext) await sleep(5000)
       if (orders.length > 99) {
         await insert()
         orders = []
@@ -530,29 +527,28 @@ const convertCustomAttributes = (
   if (!variant || !skus || skus.length < 1) return [null, '[]']
 
   let schedule = null
-  let skuQuantities: { sku: string; quantity: number }[] = []
+  let skuValues: string[] = []
   let newStyle = false
   customAttributes.forEach(({ key, value }) => {
     if ('delivery_schedule' === key) {
       newStyle = true
       schedule = value
     }
-    if ('sku_quantity' === key) {
+    if ('skus' === key) {
       newStyle = true
-      skuQuantities = JSON.parse(value)
+      skuValues = JSON.parse(value)
     }
 
     // old style
     if (!newStyle && /カラー×サイズ/.test(key))
-      skuQuantities.push({ sku: convertSKU(value), quantity: 1 })
+      skuValues.push(convertSKU(value))
     if (!newStyle && '配送予定' === key) schedule = convertSchedule(value)
   })
-  if (skuQuantities.length < 1) {
-    const [sku] = variant.skus
-    skuQuantities.push({ sku: sku.code, quantity: variant.itemCount })
+  if (skuValues.length < 1 && variant.skuSelectable === 0) {
+    skuValues = variant.skus.map(({ code }) => code)
   }
 
-  return [schedule, JSON.stringify(skuQuantities)]
+  return [schedule, JSON.stringify(skuValues)]
 }
 
 const convertSKU = (value: string): string => {

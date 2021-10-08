@@ -47,15 +47,13 @@ export const ordersAndLineItems = async (): Promise<void> => {
         throw new Error(
           `Not exist or not fetchable product data: ${lineItem.product_id}`
         )
-      // TODO: product and ordered_at -> calc schedule
+
       const scheduleData = lineItem.delivery_schedule
         ? parseSchedule(lineItem.delivery_schedule)
         : dayjs()
       if (scheduleData > dayjs().add(product.rule.leadDays, 'day')) return null
 
-      const skus: { sku: string; quantity: number }[] = JSON.parse(
-        lineItem.sku_quantity ?? '[]'
-      ) // TODO: variant -> calc sku
+      const skus: string[] = JSON.parse(lineItem.skus ?? '[]')
       const variant = product.variants.find(
         ({ variantId }) =>
           variantId === variantIdStripPrefix(lineItem.variant_id ?? '')
@@ -64,11 +62,10 @@ export const ordersAndLineItems = async (): Promise<void> => {
         throw new Error(
           `Not exist or not fetchable variant data: ${lineItem.variant_id} (product: ${product.id})`
         )
-      return skus.map<OperatedLineItemRecord>(({ sku, quantity }) => ({
+      return skus.map<OperatedLineItemRecord>((sku) => ({
         ...lineItem,
         id: lineItem.line_item_id,
         sku,
-        quantity: quantity * lineItem.quantity,
         operated_at: dayjs().toISOString(),
         delivery_date: scheduleData.format('YYYY-MM-DD')
       }))
@@ -84,13 +81,30 @@ export const ordersAndLineItems = async (): Promise<void> => {
       if (filteredOperatedLineItems.length < 1) return
 
       const skuOrders = filteredOperatedLineItems.reduce<
-        Record<string, { quantity: number; orders: OperatedLineItemRecord[] }>
+        Record<
+          string,
+          {
+            quantity: number
+            orders: Record<
+              OperatedLineItemRecord['order_id'],
+              OperatedLineItemRecord & { totalQuantity: number }
+            >
+          }
+        >
       >((res, lineItem) => {
         return {
           ...res,
           [lineItem.sku]: {
             quantity: lineItem.quantity + (res[lineItem.sku]?.quantity ?? 0),
-            orders: [...(res[lineItem.sku]?.orders ?? []), lineItem]
+            orders: {
+              ...res[lineItem.sku].orders,
+              [lineItem.order_id]: {
+                ...lineItem,
+                totalQuantity:
+                  (res[lineItem.sku].orders[lineItem.order_id]?.totalQuantity ??
+                    0) + lineItem.quantity
+              }
+            }
           }
         }
       }, {})
@@ -110,12 +124,12 @@ export const ordersAndLineItems = async (): Promise<void> => {
 
           return `* SKU: ${sku?.subName ?? '-'} ${
             sku?.name ?? '-'
-          } (${skuCode}) ${quantity}個\n${orders
+          } (${skuCode}) ${quantity}個\n${Object.values(orders)
             .map(
               (order) =>
                 `** https://survaq.myshopify.com/admin/orders/${orderIdStripPrefix(
                   order.order_id
-                )} ${order.quantity}個 配送:${order.delivery_date}\n`
+                )} ${order.totalQuantity}個 配送:${order.delivery_date}\n`
             )
             .join('')}`
         })
@@ -169,7 +183,7 @@ SELECT
   li.order_id,
   li.id AS line_item_id,
   li.delivery_schedule,
-  li.sku_quantity,
+  li.skus,
   li.variant_id,
   li.product_id,
   li.quantity,
@@ -193,7 +207,7 @@ type NotOperatedLineItemQueryRecord = {
   order_id: string
   line_item_id: string
   delivery_schedule: string | null
-  sku_quantity: string | null
+  skus: string | null
   variant_id: string | null
   product_id: string
   ordered_at: { value: string }

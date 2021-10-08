@@ -1,7 +1,7 @@
 export type Foundation = {
   fieldId: string
-  objectivePrice?: number
-  totalPrice?: number
+  objectivePrice: number
+  totalPrice: number
   closeOn: string
   supporter?: number
 }
@@ -20,9 +20,8 @@ export type Variant = {
   fieldId: string
   variantId: string
   variantName: string
-  itemCount: number
   skus: { code: string; name: string; subName: string }[]
-  skuSelectable: boolean
+  skuSelectable: number
 }
 
 export type Product = {
