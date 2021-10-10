@@ -528,11 +528,11 @@ const convertCustomAttributes = (
   let skuValues: string[] = []
   let newStyle = false
   customAttributes.forEach(({ key, value }) => {
-    if ('delivery_schedule' === key) {
+    if ('_delivery_schedule' === key) {
       newStyle = true
       schedule = value
     }
-    if ('skus' === key) {
+    if ('_skus' === key) {
       newStyle = true
       skuValues = JSON.parse(value)
     }
