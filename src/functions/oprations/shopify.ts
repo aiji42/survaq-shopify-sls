@@ -19,12 +19,14 @@ export const ordersAndLineItems = async (): Promise<void> => {
     })
   const productIds = [...new Set(bqRes.map(({ product_id }) => product_id))]
   const cmsRes = await Promise.all(
-    productIds.map((id) => {
-      return cmsClient.get<Product>({
-        endpoint: 'products',
-        contentId: productIdStripPrefix(id)
-      })
-    })
+    productIds.map((id) =>
+      cmsClient
+        .get<Product>({
+          endpoint: 'products',
+          contentId: productIdStripPrefix(id)
+        })
+        .catch(console.log)
+    )
   )
   const { contents: cmsSKUs } = await cmsClient.get<{
     contents: Product['variants'][number]['skus']
@@ -32,28 +34,30 @@ export const ordersAndLineItems = async (): Promise<void> => {
     endpoint: 'skus',
     queries: { limit: 100 }
   })
-  const products = cmsRes.reduce<Record<string, Product>>(
-    (res, product) => ({
-      ...res,
-      [product.id]: product
-    }),
-    {}
-  )
+  const products = cmsRes
+    .filter((r): r is Product => Boolean(r))
+    .reduce<Record<string, Product>>(
+      (res, product) => ({
+        ...res,
+        [product.id]: product
+      }),
+      {}
+    )
 
   const operatedLineItems = bqRes
     .map((lineItem) => {
       const product = products[productIdStripPrefix(lineItem.product_id)]
-      if (!product)
-        throw new Error(
-          `Not exist or not fetchable product data: ${lineItem.product_id}`
-        )
+      if (!product) return null
 
       const scheduleData = lineItem.delivery_schedule
         ? parseSchedule(lineItem.delivery_schedule)
         : dayjs()
       if (scheduleData > dayjs().add(product.rule.leadDays, 'day')) return null
 
-      const skus: string[] = JSON.parse(lineItem.skus ?? '[]')
+      const skus: string[] = JSON.parse(
+        (lineItem.skus === '[]' ? '["unknown"]' : lineItem.skus) ??
+          '["unknown"]'
+      )
       const variant = product.variants.find(
         ({ variantId }) =>
           variantId === variantIdStripPrefix(lineItem.variant_id ?? '')
@@ -67,7 +71,10 @@ export const ordersAndLineItems = async (): Promise<void> => {
         id: lineItem.line_item_id,
         sku,
         operated_at: dayjs().toISOString(),
-        delivery_date: scheduleData.format('YYYY-MM-DD')
+        delivery_date:
+          lineItem.delivery_schedule === 'unknown'
+            ? '1999-12-31'
+            : scheduleData.format('YYYY-MM-DD')
       }))
     })
     .flat()
@@ -97,12 +104,12 @@ export const ordersAndLineItems = async (): Promise<void> => {
           [lineItem.sku]: {
             quantity: lineItem.quantity + (res[lineItem.sku]?.quantity ?? 0),
             orders: {
-              ...res[lineItem.sku].orders,
+              ...res[lineItem.sku]?.orders,
               [lineItem.order_id]: {
                 ...lineItem,
                 totalQuantity:
-                  (res[lineItem.sku].orders[lineItem.order_id]?.totalQuantity ??
-                    0) + lineItem.quantity
+                  (res[lineItem.sku]?.orders[lineItem.order_id]
+                    ?.totalQuantity ?? 0) + lineItem.quantity
               }
             }
           }
@@ -127,9 +134,15 @@ export const ordersAndLineItems = async (): Promise<void> => {
           } (${skuCode}) ${quantity}個\n${Object.values(orders)
             .map(
               (order) =>
-                `** https://survaq.myshopify.com/admin/orders/${orderIdStripPrefix(
+                `** ${
+                  order.order_name
+                } https://survaq.myshopify.com/admin/orders/${orderIdStripPrefix(
                   order.order_id
-                )} ${order.totalQuantity}個 配送:${order.delivery_date}\n`
+                )} ${order.totalQuantity}個 配送:${
+                  order.delivery_date === '1999-12-31'
+                    ? 'unknown'
+                    : order.delivery_date
+                }\n`
             )
             .join('')}`
         })
@@ -187,7 +200,8 @@ SELECT
   li.variant_id,
   li.product_id,
   li.quantity,
-  o.created_at AS ordered_at
+  o.created_at AS ordered_at,
+  o.name AS order_name
 FROM shopify.line_items li
 LEFT JOIN shopify.operated_line_items oli
   ON oli.id = li.id
@@ -210,13 +224,15 @@ type NotOperatedLineItemQueryRecord = {
   skus: string | null
   variant_id: string | null
   product_id: string
-  ordered_at: { value: string }
   quantity: number
+  ordered_at: { value: string }
+  order_name: string
 }
 
 type OperatedLineItemRecord = {
   id: string
   operated_at: string
+  order_name: string
   delivery_date: string
   sku: string
   quantity: number
