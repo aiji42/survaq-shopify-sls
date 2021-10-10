@@ -523,10 +523,8 @@ const convertCustomAttributes = (
     ?.variants.find(
       ({ variantId: vid }) => vid === variantIdStripPrefix(variantId)
     )
-  const skus = variant?.skus
-  if (!variant || !skus || skus.length < 1) return [null, '[]']
 
-  let schedule = null
+  let schedule = 'unknown'
   let skuValues: string[] = []
   let newStyle = false
   customAttributes.forEach(({ key, value }) => {
@@ -544,7 +542,7 @@ const convertCustomAttributes = (
       skuValues.push(convertSKU(value))
     if (!newStyle && '配送予定' === key) schedule = convertSchedule(value)
   })
-  if (skuValues.length < 1 && variant.skuSelectable === 0) {
+  if (skuValues.length < 1 && variant?.skuSelectable === 0) {
     skuValues = variant.skus.map(({ code }) => code)
   }
 
@@ -570,8 +568,8 @@ const convertSKU = (value: string): string => {
   throw new Error(`parse error: ${value}`)
 }
 
-const convertSchedule = (value: string): string | null => {
-  if (/営業日以内/.test(value)) return null
+const convertSchedule = (value: string): string => {
+  if (/営業日以内/.test(value)) return 'unknown'
   const [, month, day] = value.match(/\(\d+\/\d+～(\d+)\/(\d+)\)/) ?? []
   if (!month || !day) throw new Error(`parse error: ${value}`)
   const term =
