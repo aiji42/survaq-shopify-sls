@@ -1,16 +1,16 @@
-import * as Shopify from 'shopify-api-node'
 import { sleep } from '@libs/sleep'
 import {
   getLatestUpdatedAt,
   insertRecords,
   removeDuplicates
 } from '@libs/bigquery'
-
-const shopify = new Shopify({
-  shopName: process.env.SHOPIFY_SHOP_NAME ?? '',
-  apiKey: process.env.SHOPIFY_API_KEY ?? '',
-  password: process.env.SHOPIFY_API_SECRET_KEY ?? ''
-})
+import { cmsClient } from '@libs/microCms'
+import { Product } from '@functions/getProductData/v2/product'
+import {
+  client as shopify,
+  productIdStripPrefix,
+  variantIdStripPrefix
+} from '@libs/shopify'
 
 type RecordType = Record<string, string | number | boolean | null>
 
@@ -306,7 +306,7 @@ type LineItemRecord = Omit<
   variant_id: string | null
   original_total_price: number
   delivery_schedule: string | null
-  sku_quantity: string | null
+  skus: string | null
 }
 
 type OrderNode = {
@@ -357,6 +357,13 @@ type OrderRecord = Omit<
 export const ordersAndLineItems = async (): Promise<void> => {
   const query = `updated_at:>'${await getLatestUpdatedAt('orders')}'`
   console.log('Graphql query: ', query)
+  const { contents: cmsProducts } = await cmsClient.get<{
+    contents: Product[]
+  }>({
+    endpoint: 'products',
+    queries: { limit: 30 }
+  })
+
   let hasNext = true
   let cursor: null | string = null
   let orders: OrderRecord[] = []
@@ -412,7 +419,7 @@ export const ordersAndLineItems = async (): Promise<void> => {
           'quantity',
           'original_total_price',
           'delivery_schedule',
-          'sku_quantity'
+          'skus'
         ],
         lineItems
       )
@@ -431,10 +438,7 @@ export const ordersAndLineItems = async (): Promise<void> => {
         lineItems = [
           ...lineItems,
           ...node.lineItems.edges.map(({ node: item }) => {
-            const [schedule, skuQuantity] = convertCustomAttributes(
-              item.customAttributes,
-              item.variant.title
-            )
+            const [schedule, skus] = convertCustomAttributes(item, cmsProducts)
             return {
               ...item,
               order_id: node.id,
@@ -444,7 +448,7 @@ export const ordersAndLineItems = async (): Promise<void> => {
                 item.originalTotalSet.shopMoney.amount
               ),
               delivery_schedule: schedule,
-              sku_quantity: skuQuantity
+              skus
             }
           })
         ]
@@ -472,7 +476,7 @@ export const ordersAndLineItems = async (): Promise<void> => {
           }
         ]
       }, orders)
-      if (hasNext) await sleep(3000)
+      if (hasNext) await sleep(5000)
       if (orders.length > 99) {
         await insert()
         orders = []
@@ -507,33 +511,42 @@ const decode = (src: string | null | undefined): string | null | undefined => {
 }
 
 const convertCustomAttributes = (
-  ca: { key: string; value: string }[],
-  valiantName: string
+  {
+    customAttributes,
+    variant: { id: variantId },
+    product: { id: productId }
+  }: LineItemNode,
+  products: Product[]
 ): [string | null, string] => {
-  let schedule = null
-  let skuQuantities: { sku: string; quantity: number }[] = []
+  const variant = products
+    .find(({ id }) => id === productIdStripPrefix(productId))
+    ?.variants.find(
+      ({ variantId: vid }) => vid === variantIdStripPrefix(variantId)
+    )
+
+  let schedule = 'unknown'
+  let skuValues: string[] = []
   let newStyle = false
-  ca.forEach(({ key, value }) => {
+  customAttributes.forEach(({ key, value }) => {
     if ('delivery_schedule' === key) {
       newStyle = true
       schedule = value
     }
-    if ('sku_quantity' === key) {
+    if ('skus' === key) {
       newStyle = true
-      skuQuantities = JSON.parse(value)
+      skuValues = JSON.parse(value)
     }
 
     // old style
     if (!newStyle && /カラー×サイズ/.test(key))
-      skuQuantities.push({ sku: convertSKU(value), quantity: 1 })
+      skuValues.push(convertSKU(value))
     if (!newStyle && '配送予定' === key) schedule = convertSchedule(value)
   })
-  if (skuQuantities.length < 1) {
-    const [quantity] = valiantName.match(/^\d+/) ?? ['1']
-    skuQuantities.push({ sku: 'default', quantity: Number(quantity) })
+  if (skuValues.length < 1 && variant?.skuSelectable === 0) {
+    skuValues = variant.skus.map(({ code }) => code)
   }
 
-  return [schedule, JSON.stringify(skuQuantities)]
+  return [schedule, JSON.stringify(skuValues)]
 }
 
 const convertSKU = (value: string): string => {
@@ -550,13 +563,13 @@ const convertSKU = (value: string): string => {
   else if (value.includes('XL')) size = 'xl'
   else if (value.includes('L')) size = 'l'
 
-  if (color && size) return `color_${color}_size_${size}`
+  if (color && size) return `gym_shocks_color_${color}_size_${size}`
 
   throw new Error(`parse error: ${value}`)
 }
 
-const convertSchedule = (value: string): string | null => {
-  if (/営業日以内/.test(value)) return null
+const convertSchedule = (value: string): string => {
+  if (/営業日以内/.test(value)) return 'unknown'
   const [, month, day] = value.match(/\(\d+\/\d+～(\d+)\/(\d+)\)/) ?? []
   if (!month || !day) throw new Error(`parse error: ${value}`)
   const term =

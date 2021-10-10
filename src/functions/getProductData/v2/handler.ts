@@ -44,7 +44,6 @@ export const getProductDataForClient: APIGatewayProxyHandler = async (
 
     const product: Product & { rule: NewRule } = {
       ...cmsRes,
-      skus: cmsRes.skus.filter(({ active }) => active),
       foundation: {
         ...cmsRes.foundation,
         supporter: (cmsRes.foundation.supporter ?? 0) + (bqRes.supporters ?? 0),

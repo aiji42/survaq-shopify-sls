@@ -1,14 +1,7 @@
-export type SKU = {
-  fieldId: string
-  skuCode: string
-  skuName: string
-  active: boolean
-}
-
 export type Foundation = {
   fieldId: string
-  objectivePrice?: number
-  totalPrice?: number
+  objectivePrice: number
+  totalPrice: number
   closeOn: string
   supporter?: number
 }
@@ -16,7 +9,7 @@ export type Foundation = {
 export type Rule = {
   fieldId: string
   leadDays: number
-  bulkPurchase?: number
+  bulkPurchase: number
   cyclePurchase: {
     value: 'monthly' | 'triple'
     label: string
@@ -27,7 +20,8 @@ export type Variant = {
   fieldId: string
   variantId: string
   variantName: string
-  itemCount: number
+  skus: { code: string; name: string; subName: string }[]
+  skuSelectable: number
 }
 
 export type Product = {
@@ -35,7 +29,7 @@ export type Product = {
   productCode: string
   productName: string
   variants: Array<Variant>
-  skus: Array<SKU>
+  skuLabel?: string
   foundation: Foundation
   rule: Rule
 }
