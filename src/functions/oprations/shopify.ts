@@ -120,12 +120,29 @@ export const ordersAndLineItems = async (): Promise<void> => {
         (res, { quantity }) => quantity + res,
         0
       )
-      let description = `*商品*: ${product.productName}\n`
+      let description = 'h3. サマリ\n'
+      description += `*商品*: ${product.productName}\n`
       description += `*合計発注数*: ${total}\n`
       description += `リード日数: ${product.rule.leadDays}日\n`
       description += `一括発注数: ${product.rule.bulkPurchase}\n`
 
-      description += Object.entries(skuOrders)
+      const sortedSkuOrders = Object.entries(skuOrders).sort(([a], [b]) =>
+        a.toLowerCase() > b.toLowerCase() ? -1 : 1
+      )
+
+      description += sortedSkuOrders
+        .map(([skuCode, { quantity }]) => {
+          const sku = cmsSKUs.find(({ code }) => code === skuCode)
+
+          return `* SKU: ${sku?.subName ?? '-'} ${
+            sku?.name ?? '-'
+          } (${skuCode}) ${quantity}個\n`
+        })
+        .join('')
+
+      description += '\n---\n\n'
+      description += 'h3. 詳細\n'
+      description += sortedSkuOrders
         .map(([skuCode, { quantity, orders }]) => {
           const sku = cmsSKUs.find(({ code }) => code === skuCode)
 
@@ -159,7 +176,10 @@ export const ordersAndLineItems = async (): Promise<void> => {
           summary: `[発注][${dayjs().format('YYYY-MM-DD')}]${
             product.productName
           }`,
-          description
+          description,
+          assignee: {
+            id: '61599038c7bea400691bd755'
+          }
         }
       })
     })
