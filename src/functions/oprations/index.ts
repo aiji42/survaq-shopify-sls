@@ -9,7 +9,8 @@ const environment = {
   FACEBOOK_GRAPH_API_TOKEN: '${env:FACEBOOK_GRAPH_API_TOKEN}',
   FACEBOOK_BUSINESS_ACCOUNT_ID: '${env:FACEBOOK_BUSINESS_ACCOUNT_ID}',
   JIRA_API_TOKEN: '${env:JIRA_API_TOKEN}',
-  JIRA_API_USER: '${env:JIRA_API_USER}'
+  JIRA_API_USER: '${env:JIRA_API_USER}',
+  MICROCMS_API_TOKEN: '${env:MICROCMS_API_TOKEN}'
 }
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
