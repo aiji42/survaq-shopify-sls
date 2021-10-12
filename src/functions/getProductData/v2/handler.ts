@@ -86,24 +86,25 @@ const makeSchedule = (
     date.daysInMonth()
   ]
   if (cycle === 'triple') {
-    const [term, termText, beginDate, endDate]: [
+    const [term, termText, beginDate, endDate, nextMonth]: [
       Schedule['term'],
       string,
       number,
-      number
+      number,
+      1 | 0
     ] =
       28 <= day || day <= 7
-        ? ['early', '上旬', 1, 10]
+        ? ['early', '上旬', 1, 10, 28 <= day ? 1 : 0]
         : 8 <= day && day <= 17
-        ? ['middle', '中旬', 11, 20]
-        : ['late', '下旬', 21, dayOfMonth]
+        ? ['middle', '中旬', 11, 20, 0]
+        : ['late', '下旬', 21, dayOfMonth, 0]
     return {
       year,
       month,
       term,
-      text: `${year}年${month + (28 <= day ? 1 : 0)}月${termText}`,
-      subText: `${month + (28 <= day ? 1 : 0)}/${beginDate}〜${
-        month + (28 <= day ? 1 : 0)
+      text: `${year}年${month + nextMonth}月${termText}`,
+      subText: `${month + nextMonth}/${beginDate}〜${
+        month + nextMonth
       }/${endDate}`
     }
   }
