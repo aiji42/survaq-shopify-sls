@@ -101,8 +101,10 @@ const makeSchedule = (
       year,
       month,
       term,
-      text: `${year}年${month}月${termText}`,
-      subText: `${month}/${beginDate}〜${month}/${endDate}`
+      text: `${year}年${month + (28 <= day ? 1 : 0)}月${termText}`,
+      subText: `${month + (28 <= day ? 1 : 0)}/${beginDate}〜${
+        month + (28 <= day ? 1 : 0)
+      }/${endDate}`
     }
   }
 
