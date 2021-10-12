@@ -92,9 +92,9 @@ const makeSchedule = (
       number,
       number
     ] =
-      1 <= day && day <= 10
+      28 <= day || day <= 7
         ? ['early', '上旬', 1, 10]
-        : 11 <= day && day <= 20
+        : 8 <= day && day <= 17
         ? ['middle', '中旬', 11, 20]
         : ['late', '下旬', 21, dayOfMonth]
     return {
