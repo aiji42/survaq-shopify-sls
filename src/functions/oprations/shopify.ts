@@ -149,6 +149,9 @@ export const ordersAndLineItems = async (): Promise<void> => {
           return `* SKU: ${sku?.subName ?? '-'} ${
             sku?.name ?? '-'
           } (${skuCode}) ${quantity}個\n${Object.values(orders)
+            .sort(({ order_name: a }, { order_name: b }) =>
+              a.toLowerCase() < b.toLowerCase() ? -1 : 1
+            )
             .map(
               (order) =>
                 `** ${
@@ -165,28 +168,31 @@ export const ordersAndLineItems = async (): Promise<void> => {
         })
         .join('')
 
-      return createIssue({
-        fields: {
-          project: {
-            key: 'STORE'
-          },
-          issuetype: {
-            id: '10001'
-          },
-          summary: `[発注][${dayjs().format('YYYY-MM-DD')}]${
-            product.productName
-          }`,
-          description,
-          assignee: {
-            id: '61599038c7bea400691bd755'
-          }
-        }
-      })
+      console.log(description)
+      return
+      // return createIssue({
+      //   fields: {
+      //     project: {
+      //       key: 'STORE'
+      //     },
+      //     issuetype: {
+      //       id: '10001'
+      //     },
+      //     summary: `[発注][${dayjs().format('YYYY-MM-DD')}]${
+      //       product.productName
+      //     }`,
+      //     description,
+      //     assignee: {
+      //       id: '61599038c7bea400691bd755'
+      //     }
+      //   }
+      // })
     })
   )
 
   console.log(`operated_line_item records: ${operatedLineItems.length}`)
   if (operatedLineItems.length < 1) return
+  return
   await insertRecords(
     'operated_line_items',
     'shopify',
