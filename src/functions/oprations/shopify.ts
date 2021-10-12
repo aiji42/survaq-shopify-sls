@@ -168,31 +168,28 @@ export const ordersAndLineItems = async (): Promise<void> => {
         })
         .join('')
 
-      console.log(description)
-      return
-      // return createIssue({
-      //   fields: {
-      //     project: {
-      //       key: 'STORE'
-      //     },
-      //     issuetype: {
-      //       id: '10001'
-      //     },
-      //     summary: `[発注][${dayjs().format('YYYY-MM-DD')}]${
-      //       product.productName
-      //     }`,
-      //     description,
-      //     assignee: {
-      //       id: '61599038c7bea400691bd755'
-      //     }
-      //   }
-      // })
+      return createIssue({
+        fields: {
+          project: {
+            key: 'STORE'
+          },
+          issuetype: {
+            id: '10001'
+          },
+          summary: `[発注][${dayjs().format('YYYY-MM-DD')}]${
+            product.productName
+          }`,
+          description,
+          assignee: {
+            id: '61599038c7bea400691bd755'
+          }
+        }
+      })
     })
   )
 
   console.log(`operated_line_item records: ${operatedLineItems.length}`)
   if (operatedLineItems.length < 1) return
-  return
   await insertRecords(
     'operated_line_items',
     'shopify',
