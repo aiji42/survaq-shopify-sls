@@ -100,7 +100,7 @@ const makeSchedule = (
         : ['late', '下旬', 21, dayOfMonth, 0]
     return {
       year,
-      month,
+      month: month + nextMonth,
       term,
       text: `${year}年${month + nextMonth}月${termText}`,
       subText: `${month + nextMonth}/${beginDate}〜${
