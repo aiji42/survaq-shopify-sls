@@ -574,7 +574,7 @@ const convertSchedule = (value: string): string => {
   if (!month || !day) throw new Error(`parse error: ${value}`)
   const term =
     day === '10'
-      ? 'ealy'
+      ? 'early'
       : day === '20'
       ? 'middle'
       : ['31', '30'].includes(day)
