@@ -1,9 +1,9 @@
 import { APIGatewayProxyHandler } from 'aws-lambda'
 import { client } from '@libs/bigquery'
-import * as sql from 'sqlstring'
-import * as dayjs from 'dayjs'
-import * as timezone from 'dayjs/plugin/timezone'
-import * as utc from 'dayjs/plugin/utc'
+import sql from 'sqlstring'
+import dayjs from 'dayjs'
+import timezone from 'dayjs/plugin/timezone'
+import utc from 'dayjs/plugin/utc'
 dayjs.extend(utc)
 dayjs.extend(timezone)
 dayjs.tz.setDefault('Asia/Tokyo')

@@ -1,4 +1,4 @@
-import * as Shopify from 'shopify-api-node'
+import Shopify from 'shopify-api-node'
 
 export const client = new Shopify({
   shopName: process.env.SHOPIFY_SHOP_NAME ?? '',

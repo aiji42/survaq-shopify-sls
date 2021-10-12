@@ -1,25 +1,12 @@
 import { APIGatewayProxyHandler } from 'aws-lambda'
 import { Product, Rule } from '@functions/getProductData/v2/product'
-import * as dayjs from 'dayjs'
-import * as timezone from 'dayjs/plugin/timezone'
-import * as utc from 'dayjs/plugin/utc'
-import * as sql from 'sqlstring'
+import sql from 'sqlstring'
 import { client as bigQueryClient } from '@libs/bigquery'
 import { cmsClient } from '@libs/microCms'
-dayjs.extend(utc)
-dayjs.extend(timezone)
-dayjs.tz.setDefault('Asia/Tokyo')
+import { makeSchedule, Schedule } from './utils'
 
 const corsHeader = {
   'Access-Control-Allow-Origin': '*'
-}
-
-type Schedule = {
-  year: number
-  month: number
-  term: 'early' | 'middle' | 'late'
-  text: string
-  subText: string
 }
 
 type NewRule = Rule & {
@@ -71,50 +58,6 @@ export const getProductDataForClient: APIGatewayProxyHandler = async (
       body: JSON.stringify({ message: e.message }),
       headers: { ...corsHeader }
     }
-  }
-}
-
-const makeSchedule = (
-  leadDays: number,
-  cycle: Rule['cyclePurchase']['value']
-): Schedule => {
-  const date = dayjs().tz().add(leadDays, 'day')
-  const [year, month, day, dayOfMonth] = [
-    date.year(),
-    date.month() + 1,
-    date.date(),
-    date.daysInMonth()
-  ]
-  if (cycle === 'triple') {
-    const [term, termText, beginDate, endDate, nextMonth]: [
-      Schedule['term'],
-      string,
-      number,
-      number,
-      1 | 0
-    ] =
-      28 <= day || day <= 7
-        ? ['early', '上旬', 1, 10, 28 <= day ? 1 : 0]
-        : 8 <= day && day <= 17
-        ? ['middle', '中旬', 11, 20, 0]
-        : ['late', '下旬', 21, dayOfMonth, 0]
-    return {
-      year,
-      month: month + nextMonth,
-      term,
-      text: `${year}年${month + nextMonth}月${termText}`,
-      subText: `${month + nextMonth}/${beginDate}〜${
-        month + nextMonth
-      }/${endDate}`
-    }
-  }
-
-  return {
-    year,
-    month,
-    term: 'late',
-    text: `${year}年${month}月下旬`,
-    subText: `${month}/${21}〜${month}/${dayOfMonth}`
   }
 }
 

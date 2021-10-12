@@ -1,5 +1,5 @@
-import * as dayjs from 'dayjs'
-import * as sql from 'sqlstring'
+import dayjs from 'dayjs'
+import sql from 'sqlstring'
 import { client as bigQueryClient, insertRecords } from '@libs/bigquery'
 import { cmsClient } from '@libs/microCms'
 import { Product } from '@functions/getProductData/v2/product'

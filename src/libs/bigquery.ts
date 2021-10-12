@@ -1,4 +1,4 @@
-import * as sql from 'sqlstring'
+import sql from 'sqlstring'
 import { BigQuery, SimpleQueryRowsResponse } from '@google-cloud/bigquery'
 
 const credentials = JSON.parse(

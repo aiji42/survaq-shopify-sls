@@ -1,5 +1,5 @@
 import fetch from 'node-fetch'
-import * as dayjs from 'dayjs'
+import dayjs from 'dayjs'
 import { insertRecords, removeDuplicates } from '@libs/bigquery'
 
 type Paging = {
