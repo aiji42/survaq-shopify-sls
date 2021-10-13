@@ -13,7 +13,7 @@ export const createIssue = (issue: Issue) =>
     body: JSON.stringify(issue)
   })
 
-type Issue = {
+export type Issue = {
   fields: {
     project: {
       key: string
