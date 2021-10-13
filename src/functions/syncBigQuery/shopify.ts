@@ -570,7 +570,7 @@ const convertSKU = (value: string): string => {
 
 const convertSchedule = (value: string): string => {
   if (/営業日以内/.test(value)) return 'unknown'
-  const [, month, day] = value.match(/\(\d+\/\d+～(\d+)\/(\d+)\)/) ?? []
+  const [, month, day] = value.match(/\(\d+\/\d+[～〜](\d+)\/(\d+)\)/) ?? []
   if (!month || !day) throw new Error(`parse error: ${value}`)
   const term =
     day === '10'
