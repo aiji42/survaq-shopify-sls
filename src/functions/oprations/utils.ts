@@ -84,8 +84,7 @@ export const operatedLineItemsByBulkPurchase = (
       const product = products[productIdStripPrefix(productId)]
       if (!product) return false
 
-      // return lineItems.length > product.rule.bulkPurchase
-      return lineItems.length > 5
+      return lineItems.length > product.rule.bulkPurchase
     })
     .map(([, lineItems]) => lineItems)
     .flat()
