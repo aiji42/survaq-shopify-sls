@@ -7,7 +7,7 @@ import {
 import { cmsClient } from '@libs/microCms'
 import { Product } from '@functions/getProductData/v2/product'
 import {
-  client as shopify,
+  createClient as createShopifyClient,
   productIdStripPrefix,
   variantIdStripPrefix
 } from '@libs/shopify'
@@ -26,6 +26,8 @@ type WithPageInfo<T> = T & {
     hasNextPage: boolean
   }
 }
+
+const shopify = createShopifyClient()
 
 const productListQuery = (query: string, cursor: null | string) => `{
   products(first: 50, query: "${query}" after: ${

@@ -1,10 +1,11 @@
 import Shopify from 'shopify-api-node'
 
-export const client = new Shopify({
-  shopName: process.env.SHOPIFY_SHOP_NAME ?? '',
-  apiKey: process.env.SHOPIFY_API_KEY ?? '',
-  password: process.env.SHOPIFY_API_SECRET_KEY ?? ''
-})
+export const createClient = () =>
+  new Shopify({
+    shopName: process.env.SHOPIFY_SHOP_NAME ?? '',
+    apiKey: process.env.SHOPIFY_API_KEY ?? '',
+    password: process.env.SHOPIFY_API_SECRET_KEY ?? ''
+  })
 
 // gid://shopify/Product/12341234 => 12341234
 export const productIdStripPrefix = (id: string): string => id.slice(22)
