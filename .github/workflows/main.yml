@@ -1,10 +1,26 @@
-name: Deploy
+name: main
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@master
+      - name: Install Dependencies
+        run: yarn
+      - name: Run Test
+        run: yarn test
   deploy:
-    name: deploy
+    name: Deploy
+    if: github.ref == 'refs/heads/main'
+    needs: test
     runs-on: ubuntu-latest
     strategy:
       matrix:
