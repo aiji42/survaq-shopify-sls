@@ -35,22 +35,22 @@ const parseSchedule = (value: string): Dayjs => {
   return dayjs(`${year}-${month}-${date}`)
 }
 
+const skuParse = (skus: string | null): string[] =>
+  JSON.parse((skus === '[]' ? '["unknown"]' : skus) ?? '["unknown"]')
+
 export const operatedLineItemsBySchedule = (
   records: NotOperatedLineItemQueryRecord[],
   products: Record<string, Product>
 ): OperatedLineItemRecord[] =>
   records
-    .map((lineItem) => {
+    .flatMap((lineItem) => {
       const product = products[productIdStripPrefix(lineItem.product_id)]
       if (!product) return null
 
       const scheduleData = parseSchedule(lineItem.delivery_schedule)
       if (scheduleData > dayjs().add(product.rule.leadDays, 'day')) return null
 
-      const skus: string[] = JSON.parse(
-        (lineItem.skus === '[]' ? '["unknown"]' : lineItem.skus) ??
-          '["unknown"]'
-      )
+      const skus = skuParse(lineItem.skus)
 
       return skus.map<OperatedLineItemRecord>((sku) => ({
         ...lineItem,
@@ -63,7 +63,6 @@ export const operatedLineItemsBySchedule = (
             : scheduleData.format('YYYY-MM-DD')
       }))
     })
-    .flat()
     .filter((i): i is OperatedLineItemRecord => Boolean(i))
 
 export const operatedLineItemsByBulkPurchase = (
@@ -84,15 +83,14 @@ export const operatedLineItemsByBulkPurchase = (
       const product = products[productIdStripPrefix(productId)]
       if (!product) return false
 
-      return lineItems.length > product.rule.bulkPurchase
-    })
-    .map(([, lineItems]) => lineItems)
-    .flat()
-    .map((lineItem) => {
-      const skus: string[] = JSON.parse(
-        (lineItem.skus === '[]' ? '["unknown"]' : lineItem.skus) ??
-          '["unknown"]'
+      return (
+        lineItems.reduce((res, { skus }) => res + skuParse(skus).length, 0) >=
+        product.rule.bulkPurchase
       )
+    })
+    .flatMap(([, lineItems]) => lineItems)
+    .flatMap((lineItem) => {
+      const skus = skuParse(lineItem.skus)
       const scheduleData = parseSchedule(lineItem.delivery_schedule)
       return skus.map<OperatedLineItemRecord>((sku) => ({
         ...lineItem,
@@ -105,7 +103,6 @@ export const operatedLineItemsByBulkPurchase = (
             : scheduleData.format('YYYY-MM-DD')
       }))
     })
-    .flat()
 }
 
 export const makeJiraIssue = (
@@ -145,7 +142,9 @@ export const makeJiraIssue = (
 
   const total = records.reduce((res, { quantity }) => quantity + res, 0)
   let description = 'h3. サマリ\n'
-  description += `*こちらは一括発注数を超えたために発生したタスクです。*\n`
+  description += bulk
+    ? `*こちらは一括発注数を超えたために発生したタスクです。*\n`
+    : ''
   description += `*商品*: ${product.productName}\n`
   description += `*合計発注数*: ${total}\n`
   description += `リード日数: ${product.rule.leadDays}日\n`
