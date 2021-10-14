@@ -57,7 +57,7 @@ describe('utils', () => {
           delivery_schedule: '2021-10-late',
           id: '1',
           line_item_id: '1',
-          operated_at: '2021-10-17T15:00:00.000Z',
+          operated_at: '2021-10-18T00:00:00.000Z',
           product_id: 'gid://shopify/Product/1',
           sku: 'unknown',
           skus: '[]'
@@ -84,7 +84,7 @@ describe('utils', () => {
           delivery_schedule: 'unknown',
           id: '1',
           line_item_id: '1',
-          operated_at: '2021-10-17T15:00:00.000Z',
+          operated_at: '2021-10-18T00:00:00.000Z',
           product_id: 'gid://shopify/Product/1',
           sku: 'unknown',
           skus: '[]'
@@ -111,7 +111,7 @@ describe('utils', () => {
           delivery_schedule: '2021-10-late',
           id: '1',
           line_item_id: '1',
-          operated_at: '2021-10-17T15:00:00.000Z',
+          operated_at: '2021-10-18T00:00:00.000Z',
           product_id: 'gid://shopify/Product/1',
           sku: 'some_sku_1',
           skus: '["some_sku_1", "some_sku_2"]'
@@ -121,7 +121,7 @@ describe('utils', () => {
           delivery_schedule: '2021-10-late',
           id: '1',
           line_item_id: '1',
-          operated_at: '2021-10-17T15:00:00.000Z',
+          operated_at: '2021-10-18T00:00:00.000Z',
           product_id: 'gid://shopify/Product/1',
           sku: 'some_sku_2',
           skus: '["some_sku_1", "some_sku_2"]'
@@ -201,7 +201,7 @@ describe('utils', () => {
           delivery_schedule: '2021-11-late',
           id: '1',
           line_item_id: '1',
-          operated_at: '2021-10-17T15:00:00.000Z',
+          operated_at: '2021-10-18T00:00:00.000Z',
           product_id: 'gid://shopify/Product/1',
           sku: 'some_sku_1',
           skus: '["some_sku_1", "some_sku_2"]'
@@ -211,7 +211,7 @@ describe('utils', () => {
           delivery_schedule: '2021-11-late',
           id: '1',
           line_item_id: '1',
-          operated_at: '2021-10-17T15:00:00.000Z',
+          operated_at: '2021-10-18T00:00:00.000Z',
           product_id: 'gid://shopify/Product/1',
           sku: 'some_sku_2',
           skus: '["some_sku_1", "some_sku_2"]'
@@ -221,7 +221,7 @@ describe('utils', () => {
           delivery_schedule: '2021-11-late',
           id: '2',
           line_item_id: '2',
-          operated_at: '2021-10-17T15:00:00.000Z',
+          operated_at: '2021-10-18T00:00:00.000Z',
           product_id: 'gid://shopify/Product/1',
           sku: 'some_sku_1',
           skus: '["some_sku_1"]'
@@ -239,7 +239,7 @@ describe('utils', () => {
             {
               delivery_date: '2021-11-28',
               id: '1',
-              operated_at: '2021-10-17T15:00:00.000Z',
+              operated_at: '2021-10-18T00:00:00.000Z',
               product_id: 'gid://shopify/Product/1',
               sku: 'some_sku_1',
               order_name: 'order_name',
@@ -250,7 +250,7 @@ describe('utils', () => {
             {
               delivery_date: '2021-11-28',
               id: '2',
-              operated_at: '2021-10-17T15:00:00.000Z',
+              operated_at: '2021-10-18T00:00:00.000Z',
               product_id: 'gid://shopify/Product/1',
               sku: 'some_sku_1',
               order_name: 'order_name',
@@ -261,7 +261,7 @@ describe('utils', () => {
             {
               delivery_date: '2021-11-28',
               id: '2',
-              operated_at: '2021-10-17T15:00:00.000Z',
+              operated_at: '2021-10-18T00:00:00.000Z',
               product_id: 'gid://shopify/Product/1',
               sku: 'some_sku_2',
               order_name: 'order_name',
@@ -272,7 +272,7 @@ describe('utils', () => {
             {
               delivery_date: '1999-12-31',
               id: '3',
-              operated_at: '2021-10-17T15:00:00.000Z',
+              operated_at: '2021-10-18T00:00:00.000Z',
               product_id: 'gid://shopify/Product/1',
               sku: 'unknown',
               order_name: 'order_name',
@@ -322,7 +322,7 @@ h3. 詳細
             {
               delivery_date: '2021-11-28',
               id: '1',
-              operated_at: '2021-10-17T15:00:00.000Z',
+              operated_at: '2021-10-18T00:00:00.000Z',
               product_id: 'gid://shopify/Product/1',
               sku: 'some_sku_1',
               order_name: 'order_name',
@@ -333,7 +333,7 @@ h3. 詳細
             {
               delivery_date: '2021-11-28',
               id: '2',
-              operated_at: '2021-10-17T15:00:00.000Z',
+              operated_at: '2021-10-18T00:00:00.000Z',
               product_id: 'gid://shopify/Product/1',
               sku: 'some_sku_1',
               order_name: 'order_name',
@@ -344,7 +344,7 @@ h3. 詳細
             {
               delivery_date: '2021-11-28',
               id: '2',
-              operated_at: '2021-10-17T15:00:00.000Z',
+              operated_at: '2021-10-18T00:00:00.000Z',
               product_id: 'gid://shopify/Product/1',
               sku: 'some_sku_2',
               order_name: 'order_name',
@@ -355,7 +355,7 @@ h3. 詳細
             {
               delivery_date: '1999-12-31',
               id: '3',
-              operated_at: '2021-10-17T15:00:00.000Z',
+              operated_at: '2021-10-18T00:00:00.000Z',
               product_id: 'gid://shopify/Product/1',
               sku: 'unknown',
               order_name: 'order_name',

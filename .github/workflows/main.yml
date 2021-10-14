@@ -16,9 +16,9 @@ jobs:
       - name: Install Dependencies
         run: yarn
       - name: Run Test
-        run: yarn jest
+        run: yarn test
   deploy:
-    name: deploy
+    name: Deploy
     if: github.ref == 'refs/heads/main'
     needs: test
     runs-on: ubuntu-latest
