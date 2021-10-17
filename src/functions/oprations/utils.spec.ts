@@ -30,7 +30,7 @@ const cmsProducts: Record<string, Product> = {
     id: '10',
     productName: 'ProductName10',
     rule: {
-      leadDays: 3,
+      leadDays: 40,
       bulkPurchase: 10,
       customSchedules: [
         {
@@ -234,7 +234,7 @@ describe('utils', () => {
           }
         ])
       })
-      test('Before custom schedule', () => {
+      test("If it's before a custom schedule, delivery by lead time will not be performed.", () => {
         MockDate.set(new Date(2021, 10, 30))
         expect(
           operatedLineItemsBySchedule(
@@ -259,7 +259,7 @@ describe('utils', () => {
                 product_id: 'gid://shopify/Product/10',
                 skus: '["some_sku_1"]',
                 line_item_id: '1',
-                delivery_schedule: '2021-11-late'
+                delivery_schedule: '2021-11-late' // out of custom schedule
               } as NotOperatedLineItemQueryRecord
             ],
             cmsProducts
