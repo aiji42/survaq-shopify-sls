@@ -16,8 +16,32 @@ export type Schedule = {
 
 export const makeSchedule = (
   leadDays: number,
-  cycle: Rule['cyclePurchase']['value']
+  cycle: Rule['cyclePurchase']['value'],
+  customSchedules: Rule['customSchedules']
 ): Schedule => {
+  const customSchedule = customSchedules.find(({ beginOn, endOn }) => {
+    return dayjs(beginOn) <= dayjs() && dayjs() < dayjs(endOn).add(1, 'day')
+  })
+  if (customSchedule) {
+    const [year, month, term] = customSchedule.deliverySchedule.split('-')
+    return {
+      year: Number(year),
+      month: Number(month),
+      term,
+      text: `${year}年${Number(month)}月${
+        term === 'early' ? '上旬' : term === 'middle' ? '中旬' : '下旬'
+      }`,
+      subText: `${Number(month)}/${
+        term === 'early' ? '1' : term === 'middle' ? '11' : '21'
+      }〜${Number(month)}/${
+        term === 'early'
+          ? '10'
+          : term === 'middle'
+          ? '20'
+          : dayjs(new Date(Number(year), Number(month) - 1, 1)).daysInMonth()
+      }`
+    } as Schedule
+  }
   const date = dayjs().tz().add(leadDays, 'day')
   let year = date.year()
   const day = date.date()

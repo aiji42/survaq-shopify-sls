@@ -38,6 +38,20 @@ const parseSchedule = (value: string): Dayjs => {
 const skuParse = (skus: string | null): string[] =>
   JSON.parse((skus === '[]' ? '["unknown"]' : skus) ?? '["unknown"]')
 
+const makeOperatedLineItemRecord = (
+  sku: string,
+  lineItem: NotOperatedLineItemQueryRecord
+) => ({
+  ...lineItem,
+  id: lineItem.line_item_id,
+  sku,
+  operated_at: dayjs().toISOString(),
+  delivery_date:
+    lineItem.delivery_schedule === 'unknown'
+      ? '1999-12-31'
+      : parseSchedule(lineItem.delivery_schedule).format('YYYY-MM-DD')
+})
+
 export const operatedLineItemsBySchedule = (
   records: NotOperatedLineItemQueryRecord[],
   products: Record<string, Product>
@@ -47,21 +61,27 @@ export const operatedLineItemsBySchedule = (
       const product = products[productIdStripPrefix(lineItem.product_id)]
       if (!product) return null
 
-      const scheduleData = parseSchedule(lineItem.delivery_schedule)
-      if (scheduleData > dayjs().add(product.rule.leadDays, 'day')) return null
+      const customSchedule = product.rule.customSchedules.find(
+        ({ deliverySchedule }) =>
+          deliverySchedule === lineItem.delivery_schedule
+      )
+      if (customSchedule) {
+        if (dayjs(customSchedule.purchaseSchedule) <= dayjs())
+          return skuParse(lineItem.skus).map<OperatedLineItemRecord>((sku) =>
+            makeOperatedLineItemRecord(sku, lineItem)
+          )
+        return null
+      }
 
-      const skus = skuParse(lineItem.skus)
+      if (
+        parseSchedule(lineItem.delivery_schedule) >
+        dayjs().add(product.rule.leadDays, 'day')
+      )
+        return null
 
-      return skus.map<OperatedLineItemRecord>((sku) => ({
-        ...lineItem,
-        id: lineItem.line_item_id,
-        sku,
-        operated_at: dayjs().toISOString(),
-        delivery_date:
-          lineItem.delivery_schedule === 'unknown'
-            ? '1999-12-31'
-            : scheduleData.format('YYYY-MM-DD')
-      }))
+      return skuParse(lineItem.skus).map<OperatedLineItemRecord>((sku) =>
+        makeOperatedLineItemRecord(sku, lineItem)
+      )
     })
     .filter((i): i is OperatedLineItemRecord => Boolean(i))
 
@@ -90,18 +110,9 @@ export const operatedLineItemsByBulkPurchase = (
     })
     .flatMap(([, lineItems]) => lineItems)
     .flatMap((lineItem) => {
-      const skus = skuParse(lineItem.skus)
-      const scheduleData = parseSchedule(lineItem.delivery_schedule)
-      return skus.map<OperatedLineItemRecord>((sku) => ({
-        ...lineItem,
-        id: lineItem.line_item_id,
-        sku,
-        operated_at: dayjs().toISOString(),
-        delivery_date:
-          lineItem.delivery_schedule === 'unknown'
-            ? '1999-12-31'
-            : scheduleData.format('YYYY-MM-DD')
-      }))
+      return skuParse(lineItem.skus).map<OperatedLineItemRecord>((sku) =>
+        makeOperatedLineItemRecord(sku, lineItem)
+      )
     })
 }
 

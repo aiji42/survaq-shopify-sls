@@ -13,7 +13,8 @@ const cmsProducts: Record<string, Product> = {
     productName: 'ProductName1',
     rule: {
       leadDays: 10,
-      bulkPurchase: 3
+      bulkPurchase: 3,
+      customSchedules: [] as Product['rule']['customSchedules']
     } as Product['rule']
   } as Product,
   '2': {
@@ -21,7 +22,24 @@ const cmsProducts: Record<string, Product> = {
     productName: 'ProductName2',
     rule: {
       leadDays: 10,
-      bulkPurchase: 3
+      bulkPurchase: 3,
+      customSchedules: [] as Product['rule']['customSchedules']
+    } as Product['rule']
+  } as Product,
+  '10': {
+    id: '10',
+    productName: 'ProductName10',
+    rule: {
+      leadDays: 3,
+      bulkPurchase: 10,
+      customSchedules: [
+        {
+          beginOn: '2021-10-31T15:00:00.000Z',
+          endOn: '2021-11-29T15:00:00.000Z',
+          deliverySchedule: '2021-12-late',
+          purchaseSchedule: '2021-11-30T15:00:00.000Z'
+        }
+      ]
     } as Product['rule']
   } as Product
 }
@@ -159,6 +177,106 @@ describe('utils', () => {
           cmsProducts
         )
       ).toEqual([])
+    })
+
+    describe('custom schedule', () => {
+      test('Same day as custom schedule', () => {
+        MockDate.set(new Date(2021, 11, 1))
+        expect(
+          operatedLineItemsBySchedule(
+            [
+              {
+                product_id: 'gid://shopify/Product/10',
+                skus: '["some_sku_1"]',
+                line_item_id: '1',
+                delivery_schedule: '2021-12-late'
+              } as NotOperatedLineItemQueryRecord
+            ],
+            cmsProducts
+          )
+        ).toEqual([
+          {
+            delivery_date: '2021-12-28',
+            delivery_schedule: '2021-12-late',
+            id: '1',
+            line_item_id: '1',
+            operated_at: '2021-12-01T00:00:00.000Z',
+            product_id: 'gid://shopify/Product/10',
+            sku: 'some_sku_1',
+            skus: '["some_sku_1"]'
+          }
+        ])
+      })
+      test('The custom schedule has already passed', () => {
+        MockDate.set(new Date(2021, 11, 2))
+        expect(
+          operatedLineItemsBySchedule(
+            [
+              {
+                product_id: 'gid://shopify/Product/10',
+                skus: '["some_sku_1"]',
+                line_item_id: '1',
+                delivery_schedule: '2021-12-late'
+              } as NotOperatedLineItemQueryRecord
+            ],
+            cmsProducts
+          )
+        ).toEqual([
+          {
+            delivery_date: '2021-12-28',
+            delivery_schedule: '2021-12-late',
+            id: '1',
+            line_item_id: '1',
+            operated_at: '2021-12-02T00:00:00.000Z',
+            product_id: 'gid://shopify/Product/10',
+            sku: 'some_sku_1',
+            skus: '["some_sku_1"]'
+          }
+        ])
+      })
+      test('Before custom schedule', () => {
+        MockDate.set(new Date(2021, 10, 30))
+        expect(
+          operatedLineItemsBySchedule(
+            [
+              {
+                product_id: 'gid://shopify/Product/10',
+                skus: '["some_sku_1"]',
+                line_item_id: '1',
+                delivery_schedule: '2021-12-late'
+              } as NotOperatedLineItemQueryRecord
+            ],
+            cmsProducts
+          )
+        ).toEqual([])
+      })
+      test('Before custom schedule, but with lead-time delivery.', () => {
+        MockDate.set(new Date(2021, 10, 30))
+        expect(
+          operatedLineItemsBySchedule(
+            [
+              {
+                product_id: 'gid://shopify/Product/10',
+                skus: '["some_sku_1"]',
+                line_item_id: '1',
+                delivery_schedule: '2021-11-late'
+              } as NotOperatedLineItemQueryRecord
+            ],
+            cmsProducts
+          )
+        ).toEqual([
+          {
+            delivery_date: '2021-11-28',
+            delivery_schedule: '2021-11-late',
+            id: '1',
+            line_item_id: '1',
+            operated_at: '2021-11-30T00:00:00.000Z',
+            product_id: 'gid://shopify/Product/10',
+            sku: 'some_sku_1',
+            skus: '["some_sku_1"]'
+          }
+        ])
+      })
     })
   })
 

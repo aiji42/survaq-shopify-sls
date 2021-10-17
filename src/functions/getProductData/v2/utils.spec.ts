@@ -7,8 +7,8 @@ describe('makeSchedule', () => {
   })
   describe('monthly cycle', () => {
     test('leadDays + today < 28', () => {
-      MockDate.set(new Date(2021, 9, 17))
-      const schedule = makeSchedule(10, 'monthly')
+      MockDate.set(new Date('2021-10-16T15:00:00.000Z'))
+      const schedule = makeSchedule(10, 'monthly', [])
       expect(schedule).toEqual({
         year: 2021,
         month: 10,
@@ -18,8 +18,8 @@ describe('makeSchedule', () => {
       })
     })
     test('leadDays + today = 28', () => {
-      MockDate.set(new Date(2021, 9, 18))
-      const schedule = makeSchedule(10, 'monthly')
+      MockDate.set(new Date('2021-10-17T15:00:00.000Z'))
+      const schedule = makeSchedule(10, 'monthly', [])
       expect(schedule).toEqual({
         year: 2021,
         month: 11,
@@ -29,8 +29,8 @@ describe('makeSchedule', () => {
       })
     })
     test('leadDays + today > 28', () => {
-      MockDate.set(new Date(2021, 9, 19))
-      const schedule = makeSchedule(10, 'monthly')
+      MockDate.set(new Date('2021-10-18T15:00:00.000Z'))
+      const schedule = makeSchedule(10, 'monthly', [])
       expect(schedule).toEqual({
         year: 2021,
         month: 11,
@@ -40,8 +40,8 @@ describe('makeSchedule', () => {
       })
     })
     test('end of year', () => {
-      MockDate.set(new Date(2021, 11, 19))
-      const schedule = makeSchedule(10, 'monthly')
+      MockDate.set(new Date('2021-12-18T15:00:00.000Z'))
+      const schedule = makeSchedule(10, 'monthly', [])
       expect(schedule).toEqual({
         year: 2022,
         month: 1,
@@ -54,8 +54,8 @@ describe('makeSchedule', () => {
   describe('triple cycle', () => {
     describe('middle in month', () => {
       test('leadDays + today = 8', () => {
-        MockDate.set(new Date(2021, 9, 5))
-        const schedule = makeSchedule(3, 'triple')
+        MockDate.set(new Date('2021-10-04T15:00:00.000Z'))
+        const schedule = makeSchedule(3, 'triple', [])
         expect(schedule).toEqual({
           year: 2021,
           month: 10,
@@ -65,8 +65,8 @@ describe('makeSchedule', () => {
         })
       })
       test('leadDays + today = 17', () => {
-        MockDate.set(new Date(2021, 9, 5))
-        const schedule = makeSchedule(12, 'triple')
+        MockDate.set(new Date('2021-10-04T15:00:00.000Z'))
+        const schedule = makeSchedule(12, 'triple', [])
         expect(schedule).toEqual({
           year: 2021,
           month: 10,
@@ -78,8 +78,8 @@ describe('makeSchedule', () => {
     })
     describe('late in month', () => {
       test('leadDays + today = 18', () => {
-        MockDate.set(new Date(2021, 9, 15))
-        const schedule = makeSchedule(3, 'triple')
+        MockDate.set(new Date('2021-10-14T15:00:00.000Z'))
+        const schedule = makeSchedule(3, 'triple', [])
         expect(schedule).toEqual({
           year: 2021,
           month: 10,
@@ -89,8 +89,8 @@ describe('makeSchedule', () => {
         })
       })
       test('leadDays + today = 27', () => {
-        MockDate.set(new Date(2021, 9, 15))
-        const schedule = makeSchedule(12, 'triple')
+        MockDate.set(new Date('2021-10-14T15:00:00.000Z'))
+        const schedule = makeSchedule(12, 'triple', [])
         expect(schedule).toEqual({
           year: 2021,
           month: 10,
@@ -102,8 +102,8 @@ describe('makeSchedule', () => {
     })
     describe('early in month', () => {
       test('leadDays + today = 28', () => {
-        MockDate.set(new Date(2021, 9, 15))
-        const schedule = makeSchedule(13, 'triple')
+        MockDate.set(new Date('2021-10-14T15:00:00.000Z'))
+        const schedule = makeSchedule(13, 'triple', [])
         expect(schedule).toEqual({
           year: 2021,
           month: 11,
@@ -113,8 +113,8 @@ describe('makeSchedule', () => {
         })
       })
       test('leadDays + today = 7', () => {
-        MockDate.set(new Date(2021, 8, 27))
-        const schedule = makeSchedule(10, 'triple')
+        MockDate.set(new Date('2021-09-26T15:00:00.000Z'))
+        const schedule = makeSchedule(10, 'triple', [])
         expect(schedule).toEqual({
           year: 2021,
           month: 10,
@@ -124,8 +124,8 @@ describe('makeSchedule', () => {
         })
       })
       test('end of year', () => {
-        MockDate.set(new Date(2021, 11, 15))
-        const schedule = makeSchedule(13, 'triple')
+        MockDate.set(new Date('2021-12-14T15:00:00.000Z'))
+        const schedule = makeSchedule(13, 'triple', [])
         expect(schedule).toEqual({
           year: 2022,
           month: 1,
@@ -133,6 +133,65 @@ describe('makeSchedule', () => {
           subText: `1/1〜1/10`,
           term: 'early'
         })
+      })
+    })
+  })
+
+  describe('has custom schedules', () => {
+    test('within the term (begin)', () => {
+      MockDate.set(new Date('2021-11-14T15:00:00.000Z'))
+      const schedule = makeSchedule(13, 'triple', [
+        {
+          beginOn: '2021-11-14T15:00:00.000Z',
+          endOn: '2021-11-19T15:00:00.000Z',
+          deliverySchedule: '2022-01-late',
+          purchaseSchedule: '2021-12-31T15:00:00.000Z'
+        }
+      ])
+      expect(schedule).toEqual({
+        year: 2022,
+        month: 1,
+        text: `2022年1月下旬`,
+        subText: `1/21〜1/31`,
+        term: 'late'
+      })
+    })
+
+    test('within the term (end)', () => {
+      MockDate.set(new Date('2021-11-20T14:59:59.000Z'))
+      const schedule = makeSchedule(13, 'triple', [
+        {
+          beginOn: '2021-11-14T15:00:00.000Z',
+          endOn: '2021-11-19T15:00:00.000Z',
+          deliverySchedule: '2022-01-late',
+          purchaseSchedule: '2021-12-31T15:00:00.000Z'
+        }
+      ])
+      expect(schedule).toEqual({
+        year: 2022,
+        month: 1,
+        text: `2022年1月下旬`,
+        subText: `1/21〜1/31`,
+        term: 'late'
+      })
+    })
+
+    test('out of the term', () => {
+      MockDate.set(new Date('2021-11-20T15:00:00.000Z'))
+      const schedule = makeSchedule(13, 'triple', [
+        {
+          beginOn: '2021-11-14T15:00:00.000Z',
+          endOn: '2021-11-19T15:00:00.000Z',
+          deliverySchedule: '2022-01-late',
+          purchaseSchedule: '2021-12-31T15:00:00.000Z'
+        }
+      ])
+      expect(schedule).toEqual({
+        year: 2021,
+        month: 12,
+        text: `2021年12月上旬`,
+        subText: `12/1〜12/10`,
+        term: 'early'
       })
     })
   })

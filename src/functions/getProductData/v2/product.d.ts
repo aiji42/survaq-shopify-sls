@@ -14,6 +14,12 @@ export type Rule = {
     value: 'monthly' | 'triple'
     label: string
   }
+  customSchedules: Array<{
+    beginOn: string
+    endOn: string
+    deliverySchedule: string
+    purchaseSchedule: string
+  }>
 }
 
 export type Variant = {

@@ -41,7 +41,8 @@ export const getProductDataForClient: APIGatewayProxyHandler = async (
         ...cmsRes.rule,
         schedule: makeSchedule(
           cmsRes.rule.leadDays,
-          cmsRes.rule.cyclePurchase.value
+          cmsRes.rule.cyclePurchase.value,
+          cmsRes.rule.customSchedules
         )
       }
     }
