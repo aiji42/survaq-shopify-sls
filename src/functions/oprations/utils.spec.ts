@@ -231,8 +231,8 @@ describe('utils', () => {
   })
 
   describe('makeJiraIssue', () => {
-    MockDate.set(new Date(2021, 9, 14))
     test('scheduled purchase mode', () => {
+      MockDate.set(new Date(2021, 9, 14))
       expect(
         makeJiraIssue(
           [
