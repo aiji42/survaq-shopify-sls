@@ -17,7 +17,7 @@ export const syncProductsTable: AWS['functions'][string] = {
   handler: `${handlerPath(__dirname)}/shopify.products`,
   events: [
     {
-      schedule: 'cron(0 * * * ? *)'
+      schedule: 'cron(58 * * * ? *)'
     }
   ],
   timeout: 60,
@@ -32,7 +32,7 @@ export const syncVariantsTable: AWS['functions'][string] = {
   handler: `${handlerPath(__dirname)}/shopify.variants`,
   events: [
     {
-      schedule: 'cron(0 * * * ? *)'
+      schedule: 'cron(58 * * * ? *)'
     }
   ],
   timeout: 60,

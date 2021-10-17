@@ -6,12 +6,7 @@ import {
   syncOrdersAndLineItemsTable,
   syncFacebookAdReports
 } from '@functions/syncBigQuery'
-import {
-  getVariations,
-  getFundings,
-  getAdditionalProperties,
-  getProductDataV2
-} from '@functions/getProductData'
+import { getProductDataV2 } from '@functions/getProductData'
 
 import { operationOrdersAndLineItems } from '@functions/oprations'
 
@@ -22,15 +17,11 @@ const serverlessConfiguration: AWS = {
     webpack: {
       webpackConfig: './webpack.config.js',
       includeModules: true
-    },
-    apiGatewayCaching: {
-      enabled: true
     }
   },
   plugins: [
     'serverless-webpack',
     'serverless-dotenv-plugin',
-    'serverless-api-gateway-caching',
     'serverless-offline'
   ],
   provider: {
@@ -46,9 +37,6 @@ const serverlessConfiguration: AWS = {
     syncVariantsTable,
     syncOrdersAndLineItemsTable,
     syncFacebookAdReports,
-    getVariations,
-    getFundings,
-    getAdditionalProperties,
     getProductDataV2,
     operationOrdersAndLineItems
   }
