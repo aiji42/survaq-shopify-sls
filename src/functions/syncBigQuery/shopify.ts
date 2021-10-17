@@ -584,5 +584,5 @@ const convertSchedule = (value: string): string => {
       : null
   if (term === null) throw new Error(`parse error: ${value}`)
 
-  return `2021-${month}-${term}`
+  return `2021-${String(month).padStart(2, '0')}-${term}`
 }
