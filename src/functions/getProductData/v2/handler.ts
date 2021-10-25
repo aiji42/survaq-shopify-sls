@@ -16,9 +16,9 @@ type NewRule = Rule & {
 export const getProductDataForClient: APIGatewayProxyHandler = async (
   event
 ) => {
-  const productId = event.pathParameters?.productId
+  const productId = event.pathParameters?.productId ?? ''
   try {
-    const cmsReq = cmsClient.get<Product>({
+    const cmsReq = cmsClient.getListDetail<Product>({
       endpoint: 'products',
       contentId: productId
     })
@@ -56,7 +56,9 @@ export const getProductDataForClient: APIGatewayProxyHandler = async (
     console.error(e)
     return {
       statusCode: 500,
-      body: JSON.stringify({ message: e.message }),
+      body: JSON.stringify({
+        message: e instanceof Error ? e.message : 'unknown error'
+      }),
       headers: { ...corsHeader }
     }
   }

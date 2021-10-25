@@ -10,6 +10,7 @@ import {
   operatedLineItemsByBulkPurchase,
   operatedLineItemsBySchedule
 } from '@functions/oprations/utils'
+import { MicroCMSDate } from 'microcms-js-sdk'
 
 export const ordersAndLineItems = async (): Promise<void> => {
   const [bqRes]: [NotOperatedLineItemQueryRecord[], unknown] =
@@ -20,21 +21,24 @@ export const ordersAndLineItems = async (): Promise<void> => {
   const cmsRes = await Promise.all(
     productIds.map((id) =>
       cmsClient
-        .get<Product>({
+        .getListDetail<Product>({
           endpoint: 'products',
           contentId: productIdStripPrefix(id)
         })
-        .catch(console.log)
+        .catch((e) => {
+          console.log('productId: ', productIdStripPrefix(id))
+          console.log(e)
+        })
     )
   )
-  const { contents: cmsSKUs } = await cmsClient.get<{
-    contents: Product['variants'][number]['skus']
-  }>({
+  const { contents: cmsSKUs } = await cmsClient.getList<
+    Product['variants'][number]['skus'][number]
+  >({
     endpoint: 'skus',
     queries: { limit: 100 }
   })
   const products = cmsRes
-    .filter((r): r is Product => Boolean(r))
+    .filter((r): r is Product & MicroCMSDate => Boolean(r))
     .reduce<Record<string, Product>>(
       (res, product) => ({
         ...res,

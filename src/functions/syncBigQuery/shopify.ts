@@ -359,9 +359,7 @@ type OrderRecord = Omit<
 export const ordersAndLineItems = async (): Promise<void> => {
   const query = `updated_at:>'${await getLatestUpdatedAt('orders')}'`
   console.log('Graphql query: ', query)
-  const { contents: cmsProducts } = await cmsClient.get<{
-    contents: Product[]
-  }>({
+  const { contents: cmsProducts } = await cmsClient.getList<Product>({
     endpoint: 'products',
     queries: { limit: 30 }
   })
