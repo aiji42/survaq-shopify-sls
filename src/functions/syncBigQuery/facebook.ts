@@ -39,13 +39,23 @@ type Res = {
   owned_ad_accounts: AdAccount
 }
 
+type FbError = {
+  error: {
+    message: string
+    type: string
+    code: string
+    error_subcode: string
+    fbtrace_id: string
+  }
+}
+
 export const adReports = async (): Promise<void> => {
   const res = await Promise.all<AdReportRecord[]>(
-    range(0, 13)
+    range(0, 7)
       .map((d) => dayjs().subtract(d, 'day').format('YYYY-MM-DD'))
       .map((inspectDate) => {
         return new Promise((resolve) => {
-          getAdReportRecords(inspectDate).then((records) => resolve(records))
+          getAdReportRecords(inspectDate).then(resolve)
         })
       })
   )
@@ -94,13 +104,22 @@ type AdReportRecord = {
 
 const getAdReportRecords = async (
   inspectDate: string
-): Promise<AdReportRecord[]> => {
+): Promise<AdReportRecord[] | never> => {
   const records: AdReportRecord[] = []
   let next = `https://graph.facebook.com/v11.0/${process.env.FACEBOOK_BUSINESS_ACCOUNT_ID}?fields=owned_ad_accounts.limit(5){name,adsets.limit(20){name,insights.time_range({since:'${inspectDate}',until:'${inspectDate}'}){impressions,spend,reach,clicks,action_values,actions}}}&access_token=${process.env.FACEBOOK_GRAPH_API_TOKEN}`
   while (next) {
-    const res = await fetch(next).then(
-      (res) => res.json() as Promise<Res | AdAccount>
-    )
+    const res = await fetch(next).then((res) => {
+      if (!res.ok) {
+        const usage = res.headers.get('x-business-use-case-usage')
+        usage && console.log(JSON.parse(usage))
+      }
+      return res.json() as Promise<Res | AdAccount | FbError>
+    })
+    if ('error' in res) {
+      console.error(res.error)
+      throw new Error(res.error.message)
+    }
+
     next =
       ('owned_ad_accounts' in res
         ? res.owned_ad_accounts.paging.next
