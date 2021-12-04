@@ -85,7 +85,7 @@ export const makeSchedule = (
     month,
     term: 'late',
     text: `${year}年${month}月下旬`,
-    texts: createScheduleTextArray({ year, month }, 'month'),
+    texts: createScheduleTextArray({ year, month }),
     subText: `${month}/${21}〜${month}/${dayOfMonth}`
   }
 }
@@ -100,17 +100,13 @@ const createScheduleTextArray = (
     month: string | number
     term?: Schedule['term']
   },
-  type: 'term' | 'month' = 'term',
   size = 4
 ): string[] => {
   const begin = dayjs(
     `${year}-${month}-${term === 'late' ? 28 : term === 'middle' ? 18 : 8}`
   )
   return Array.from({ length: size }).map((_, index) => {
-    const date = begin.add(
-      -1 * index * (type === 'term' ? 10 : 1),
-      type === 'month' ? 'months' : 'days'
-    )
+    const date = begin.add(-1 * index * 10, 'days')
     return `${date.year()}年${date.month() + 1}月${
       date.date() > 20 ? '下旬' : date.date() > 10 ? '中旬' : '上旬'
     }`
