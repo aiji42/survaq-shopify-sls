@@ -100,7 +100,7 @@ const createScheduleTextArray = (
     month: string | number
     term?: Schedule['term']
   },
-  size = 4
+  size = 7
 ): string[] => {
   const begin = dayjs(
     `${year}-${month}-${term === 'late' ? 28 : term === 'middle' ? 18 : 8}`
