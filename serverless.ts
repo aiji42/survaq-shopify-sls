@@ -27,6 +27,7 @@ const serverlessConfiguration: AWS = {
   provider: {
     name: 'aws',
     runtime: 'nodejs14.x',
+    region: 'ap-northeast-1',
     environment: {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
     },
