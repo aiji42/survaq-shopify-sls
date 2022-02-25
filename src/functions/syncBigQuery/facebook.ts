@@ -106,7 +106,7 @@ const getAdReportRecords = async (
   inspectDate: string
 ): Promise<AdReportRecord[] | never> => {
   const records: AdReportRecord[] = []
-  let next = `https://graph.facebook.com/v11.0/${process.env.FACEBOOK_BUSINESS_ACCOUNT_ID}?fields=owned_ad_accounts.limit(5){name,adsets.limit(20){name,insights.time_range({since:'${inspectDate}',until:'${inspectDate}'}){impressions,spend,reach,clicks,action_values,actions}}}&access_token=${process.env.FACEBOOK_GRAPH_API_TOKEN}`
+  let next = `https://graph.facebook.com/v13.0/${process.env.FACEBOOK_BUSINESS_ACCOUNT_ID}?fields=owned_ad_accounts.limit(5){name,adsets.limit(20){name,insights.time_range({since:'${inspectDate}',until:'${inspectDate}'}){impressions,spend,reach,clicks,action_values,actions}}}&access_token=${process.env.FACEBOOK_GRAPH_API_TOKEN}`
   while (next) {
     const res = await fetch(next).then((res) => {
       if (!res.ok) {
