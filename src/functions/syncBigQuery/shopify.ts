@@ -363,6 +363,7 @@ export const ordersAndLineItems = async (): Promise<void> => {
     endpoint: 'products',
     queries: { limit: 30 }
   })
+  console.log('Succeed fetched cms data: hits ', cmsProducts.length)
 
   let hasNext = true
   let cursor: null | string = null
