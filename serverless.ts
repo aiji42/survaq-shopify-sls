@@ -37,7 +37,6 @@ const serverlessConfiguration: AWS = {
     syncProductsTable,
     syncVariantsTable,
     syncOrdersAndLineItemsTable,
-    syncFacebookAdReports,
     getProductDataV2,
     operationOrdersAndLineItems
   }
