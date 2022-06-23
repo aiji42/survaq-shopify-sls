@@ -3,8 +3,7 @@ import type { AWS } from '@serverless/typescript'
 import {
   syncProductsTable,
   syncVariantsTable,
-  syncOrdersAndLineItemsTable,
-  syncFacebookAdReports
+  syncOrdersAndLineItemsTable
 } from '@functions/syncBigQuery'
 import { getProductDataV2 } from '@functions/getProductData'
 
