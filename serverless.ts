@@ -1,10 +1,6 @@
 import type { AWS } from '@serverless/typescript'
 
-import {
-  syncProductsTable,
-  syncVariantsTable,
-  syncOrdersAndLineItemsTable
-} from '@functions/syncBigQuery'
+import { syncOrdersAndLineItemsTable } from '@functions/syncBigQuery'
 import { getProductDataV2 } from '@functions/getProductData'
 
 import { operationOrdersAndLineItems } from '@functions/oprations'
@@ -33,8 +29,6 @@ const serverlessConfiguration: AWS = {
     lambdaHashingVersion: '20201221'
   },
   functions: {
-    syncProductsTable,
-    syncVariantsTable,
     syncOrdersAndLineItemsTable,
     getProductDataV2,
     operationOrdersAndLineItems
