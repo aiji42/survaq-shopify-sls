@@ -1,7 +1,5 @@
 import { APIGatewayProxyHandler } from 'aws-lambda'
 import { Product, Rule } from '@functions/getProductData/v2/product'
-import sql from 'sqlstring'
-import { client as bigQueryClient } from '@libs/bigquery'
 import { cmsClient } from '@libs/microCms'
 import { makeSchedule, Schedule } from './utils'
 
@@ -22,21 +20,11 @@ export const getProductDataForClient: APIGatewayProxyHandler = async (
       endpoint: 'products',
       contentId: productId
     })
-    const bqReq = bigQueryClient.query({
-      query: makeFundingsQuery(Number(productId))
-    })
 
     const cmsRes = await cmsReq
-    const [[bqRes]] = await bqReq
 
     const product: Product & { rule: NewRule } = {
       ...cmsRes,
-      foundation: {
-        ...cmsRes.foundation,
-        supporter: (cmsRes.foundation.supporter ?? 0) + (bqRes.supporters ?? 0),
-        objectivePrice: cmsRes.foundation.objectivePrice ?? 0,
-        totalPrice: (cmsRes.foundation.totalPrice ?? 0) + (bqRes.price ?? 0)
-      },
       rule: {
         ...cmsRes.rule,
         schedule: makeSchedule(
@@ -63,16 +51,3 @@ export const getProductDataForClient: APIGatewayProxyHandler = async (
     }
   }
 }
-
-const makeFundingsQuery = (product: number) =>
-  sql.format(
-    `
-SELECT
-  sum(original_total_price) AS price,
-  count(distinct order_id) AS supporters
-FROM shopify.line_items li
-WHERE product_id = "gid://shopify/Product/?"
-GROUP BY product_id
-`,
-    [product]
-  )
