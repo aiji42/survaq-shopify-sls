@@ -3,8 +3,6 @@ import type { AWS } from '@serverless/typescript'
 import { syncOrdersAndLineItemsTable } from '@functions/syncBigQuery'
 import { getProductDataV2 } from '@functions/getProductData'
 
-import { operationOrdersAndLineItems } from '@functions/oprations'
-
 const serverlessConfiguration: AWS = {
   service: 'survaq-shopify-sls',
   frameworkVersion: '2',
@@ -30,8 +28,7 @@ const serverlessConfiguration: AWS = {
   },
   functions: {
     syncOrdersAndLineItemsTable,
-    getProductDataV2,
-    operationOrdersAndLineItems
+    getProductDataV2
   }
 }
 
