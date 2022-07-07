@@ -1,6 +1,5 @@
 import type { AWS } from '@serverless/typescript'
 
-import { syncOrdersAndLineItemsTable } from '@functions/syncBigQuery'
 import { getProductDataV2 } from '@functions/getProductData'
 
 const serverlessConfiguration: AWS = {
@@ -27,7 +26,6 @@ const serverlessConfiguration: AWS = {
     lambdaHashingVersion: '20201221'
   },
   functions: {
-    syncOrdersAndLineItemsTable,
     getProductDataV2
   }
 }
