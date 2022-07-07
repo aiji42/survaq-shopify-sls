@@ -1,7 +1,5 @@
 import type { AWS } from '@serverless/typescript'
 
-import { getProductDataV2 } from '@functions/getProductData'
-
 const serverlessConfiguration: AWS = {
   service: 'survaq-shopify-sls',
   frameworkVersion: '2',
@@ -25,9 +23,7 @@ const serverlessConfiguration: AWS = {
     },
     lambdaHashingVersion: '20201221'
   },
-  functions: {
-    getProductDataV2
-  }
+  functions: {}
 }
 
 module.exports = serverlessConfiguration
